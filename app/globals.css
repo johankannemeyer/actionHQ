@@ -344,3 +344,9 @@ img,video,canvas,svg{max-width:100%}
 .team-image-card strong{font-size:14px}
 .team-image-card small{font-size:9px;color:var(--muted)}
 @media(max-width:760px){.avatar-upload{width:100%;margin-left:0;margin-top:10px}.team-image-card{flex-wrap:wrap}}
+
+.smart-athlete-photo{display:inline-block;width:78px;height:78px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.55);margin-bottom:12px;box-shadow:0 6px 18px rgba(0,0,0,.28);vertical-align:top}
+.smart-athlete-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.roster-photo-button{position:relative;overflow:hidden;border:1px solid #b4bfbb;background:transparent;padding:6px 8px;font-size:8px;font-weight:800;cursor:pointer;border-radius:3px}
+.roster-photo-button input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+@media(max-width:760px){.season-context-bar{grid-template-columns:1fr}.season-context-controls{grid-template-columns:1fr 1fr}}
