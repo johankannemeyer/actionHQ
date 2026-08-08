@@ -350,3 +350,22 @@ img,video,canvas,svg{max-width:100%}
 .roster-photo-button{position:relative;overflow:hidden;border:1px solid #b4bfbb;background:transparent;padding:6px 8px;font-size:8px;font-weight:800;cursor:pointer;border-radius:3px}
 .roster-photo-button input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
 @media(max-width:760px){.season-context-bar{grid-template-columns:1fr}.season-context-controls{grid-template-columns:1fr 1fr}}
+
+/* ============ Broad mobile responsiveness pass ============ */
+@media(max-width:760px){
+  /* Never let the page itself scroll sideways */
+  body,.app-root,.main-column{max-width:100%;overflow-x:hidden}
+  .main-column{padding-left:14px;padding-right:14px}
+  /* Wide data tables scroll inside their own card, not the page */
+  .full-stat-card,.team-comparison,.skins-scorecard,.scorecard-stat-table,.ranking-table-scroll,.mini-table{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Collapse dense multi-column layout grids to a single column */
+  .team-ranking-grid,.team-pattern-grid,.match-analysis-grid,.player-directory-grid,.intelligence-grid,.policy-grid,.insight-explainer>div,.scoring-dna-layout,.run-type-card>div,.wicket-risk-card>div,.season-context-bar,.season-context-controls,.captain-signup-layout,.captain-account-grid,.home-command-grid,.home-dashboard-grid,.home-result-score{grid-template-columns:1fr}
+  /* Two-up for compact stat strips */
+  .match-intelligence-kpis,.scorecard-highlights,.bowling-metric-grid,.player-depth-metrics,.career-stat-grid,.innings-split-card>div,.directory-stats,.home-record-grid,.home-match-readout,.captain-workspace-tabs{grid-template-columns:1fr 1fr}
+  /* Legibility: lift the tiniest labels */
+  .main-column small,.main-column .overline{font-size:10px;line-height:1.35}
+  .main-column .stat-cards small,.main-column .team-summary small,.main-column .directory-stats small,.main-column .match-intelligence-kpis small,.main-column .scorecard-highlights small,.main-column .stat-head span,.main-column .stat-head b,.main-column .stat-head strong{font-size:9px}
+  /* Keep filter/nav rows from overflowing */
+  .season-flow,.feed-tabs,.metric-switch,.import-method-switch{overflow-x:auto;flex-wrap:nowrap}
+  .team-image-card{flex-wrap:wrap}
+}
