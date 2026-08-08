@@ -1,0 +1,1 @@
+ALTER TABLE `synced_matches` ADD `match_type` text DEFAULT 'league' NOT NULL;

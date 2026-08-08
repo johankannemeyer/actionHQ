@@ -1,0 +1,456 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../", import.meta.url);
+
+test("offers season archives and uploaded-scorecard player linking", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+
+  assert.match(page, /SEASON WORKSPACE/);
+  assert.match(page, /CHOOSE SEASON/);
+  assert.match(page, /season\{team\.seasons\.length === 1 \? "" : "s"\} safely stored/);
+  assert.match(page, /Former player/);
+  assert.match(page, /Import the scorecard under Team Admin first/);
+  assert.match(page, /PLAYER PROFILE/);
+  assert.match(page, /Every linked appearance/);
+  assert.match(page, /FORMER/);
+  assert.doesNotMatch(page, /TEAM PROFILE MATCH/);
+  assert.doesNotMatch(page, /Yes, link my stats/);
+  assert.match(page, /MATCH CENTRE/);
+  assert.match(page, /Games &amp; scorecards/);
+  assert.match(page, /label: "Team Stats"/);
+  assert.match(page, /label: "Games & Scores"/);
+  assert.match(page, /label: "Team Admin"/);
+  assert.match(page, /aria-label="Open search"/);
+  assert.match(page, /aria-label="Team shortcuts"/);
+  assert.match(page, /THE COMPLETE TEAM PICTURE/);
+  assert.match(page, /One home for every score, player and season/);
+  assert.match(page, /LATEST RESULT/);
+  assert.match(page, /SEASON LEADERS/);
+  assert.match(page, /SEASON SCORECARDS/);
+  assert.match(page, /CURRENT SEASON/);
+  assert.doesNotMatch(page, /ACTIVITY FEED/);
+  assert.doesNotMatch(page, />Following<\/button>/);
+  assert.doesNotMatch(page, />Discover<\/button>/);
+  assert.match(page, /All player pages/);
+  assert.match(page, /function navigateTo/);
+  assert.doesNotMatch(page, /Add a fixture manually/);
+  assert.doesNotMatch(page, /3 · UPCOMING MATCH/);
+  assert.match(page, /Import completed scorecard/);
+  assert.doesNotMatch(page, /UPCOMING FIXTURE/);
+  assert.doesNotMatch(page, /Add the next match/);
+  assert.doesNotMatch(page, /Choose fixture season/);
+  assert.doesNotMatch(page, /Team schedule/);
+  assert.doesNotMatch(page, /addManualFixture/);
+  assert.doesNotMatch(page, /removeManualFixture/);
+  assert.match(page, /SEARCH ACTIONHQ/);
+  assert.match(page, /PROFILE SETTINGS/);
+  assert.match(page, /TEAM ANALYSIS/);
+  assert.match(page, /TEAM STATISTICS/);
+  assert.match(page, /THE TEAM PERFORMANCE PICTURE/);
+  assert.match(page, /Choose team statistics season/);
+  assert.match(page, /Filter team statistics by game type/);
+  assert.match(page, /Filter team statistics by result/);
+  assert.match(page, /Sort team statistics matches/);
+  assert.match(page, /season-current-pill/);
+  assert.match(page, /\{season\?\.name \|\| "Current season"\}/);
+  assert.match(page, /Choose player directory season/);
+  assert.match(page, /Sort player directory/);
+  assert.match(page, /All-time career/);
+  assert.match(page, /active roster player/);
+  assert.match(page, /Import completed scorecards/);
+  assert.match(page, /Choose scorecard import season/);
+  assert.match(page, /Save scorecards to season/);
+  assert.match(page, /scorecardSeasonId/);
+  assert.match(page, /form\.append\("teamSeasonId", String\(scorecardImportSeason\.id\)\)/);
+  assert.match(page, /filed under \$\{scorecardImportSeason\.name/);
+  assert.match(page, /Add a new season/);
+  assert.match(page, /Add season & make current/);
+  assert.match(page, /Edit selected season/);
+  assert.match(page, /Season name<input/);
+  assert.match(page, /League<input/);
+  assert.match(page, /Season ID<input/);
+  assert.match(page, /Delete season/);
+  assert.match(page, /New scorecards will be filed here automatically/);
+  assert.match(page, /This archived season is read-only until you make it current/);
+  assert.match(page, /aria-label="Season management sections"/);
+  assert.match(page, /3 · CONFIRM ROSTER/);
+  assert.match(page, /Remove from roster/);
+  assert.match(page, /Removed roster players/);
+  assert.match(page, /Permanent profile preserved · 0 games/);
+  assert.match(page, /setRosterPlayerActive/);
+  assert.match(page, /playerSeason\.active \|\| playerSeason\.games > 0/);
+  assert.match(page, /QUICK ACTION · UPDATE SCORES/);
+  assert.match(page, /className="roster-import-empty"/);
+  assert.match(page, /importSeasonRoster/);
+  assert.ok(page.indexOf('id="scorecard-imports"') < page.indexOf('id="season-roster"'), "completed result import is the first Team Admin action");
+  assert.match(page, /Move to<select/);
+  assert.doesNotMatch(page, /Refresh the official roster/);
+  assert.doesNotMatch(page, /SQUAD INVITATION/);
+  assert.doesNotMatch(page, /Player access/);
+  assert.doesNotMatch(page, /MATCH CONVERSATION/);
+  assert.doesNotMatch(page, /Match conversation/);
+  assert.doesNotMatch(page, /commentText/);
+  assert.doesNotMatch(page, /addComment/);
+  assert.match(page, /FULL PLAYER STATISTICS/);
+  assert.match(page, /Team comparison/);
+  assert.doesNotMatch(page, /Original source/);
+  assert.match(page, /Ball-by-ball/);
+  assert.match(page, /Every delivery, batter and bowler/);
+  assert.match(page, /<details className="ball-by-ball-panel">/);
+  assert.match(page, /<summary className="ball-by-ball-heading">/);
+  assert.match(page, /Open full scorecard/);
+  assert.match(page, /Close full scorecard/);
+  assert.match(page, /Swipe to see every skin/);
+  assert.match(page, /Swipe to compare every statistic/);
+  assert.match(page, /Player names stay visible while you swipe across statistics/);
+  assert.match(page, /Swipe to explore every match/);
+  assert.match(page, /MATCH INTELLIGENCE/);
+  assert.match(page, /How the game was won/);
+  assert.match(page, /RUNS VS WICKETS/);
+  assert.match(page, /BOWLING DISCIPLINE/);
+  assert.match(page, /EXTRAS EDGE/);
+  assert.match(page, /DOT PRESSURE/);
+  assert.match(page, /scorecardTeamAnalysis/);
+  assert.match(page, /extrasGiven/);
+  assert.match(page, /wicketsLost/);
+  assert.match(page, /dotBallsBowled/);
+  assert.match(page, /scorecardInnings\.pairs\.map/);
+  assert.match(page, /over\.deliveries\.map/);
+  assert.match(page, /Remove game/);
+  assert.match(page, /excluded from every team and player statistic/);
+  assert.match(page, /uploading the HTML scorecard again restores it/i);
+  assert.match(page, /Completed HTML scorecards/);
+  assert.match(page, /HTML files/);
+  assert.match(page, /Scorecard URL/);
+  assert.match(page, /Friendly game/);
+  assert.match(page, /Grading game/);
+  assert.match(page, /Leave both clear for a league game/);
+  assert.match(page, /form\.append\("matchType", scorecardMatchType\)/);
+  assert.match(page, /matchTypeLabel/);
+  assert.match(page, /scorecardImportFeedback/);
+  assert.match(page, /Import failed/);
+  assert.match(page, /could not reach the import service/);
+  assert.match(page, /response\.text\(\)/);
+  assert.match(page, /Action Sport scorecard URL/);
+  assert.match(page, /Nothing is fetched automatically/);
+  assert.equal((page.match(/<strong>Import completed scorecards<\/strong>/g) ?? []).length, 1);
+  assert.ok(page.indexOf("Import completed scorecards") > page.indexOf('{view === "team"'), "scorecard imports stay inside Team Admin");
+  assert.ok(page.indexOf("Import completed scorecards") < page.indexOf('{view === "fixtures"'), "match centre begins after Team Admin ends");
+  assert.match(page, /<h1>Games &amp; scorecards<\/h1>/);
+  assert.match(page, /Open every completed result and full scorecard from one page/);
+  assert.doesNotMatch(page, /Claim player profile/);
+  assert.match(page, /TEAM PLAYER PROFILES/);
+  assert.match(page, /playerDirectoryRows\.map/);
+  assert.match(page, /player profile\{playerDirectoryRows\.length === 1/);
+  assert.doesNotMatch(page, /Player profile<select/);
+  assert.doesNotMatch(page, /Claimed account/);
+  assert.doesNotMatch(page, /CLAIMED ACCOUNTS/);
+  assert.doesNotMatch(page, /READY TO CLAIM/);
+  assert.match(page, /PLAYER DIRECTORY/);
+  assert.match(page, /Season and all-time statistics come only from imported scorecards/);
+  assert.match(page, /PLAYER PROFILE · \{viewName\}/);
+  assert.match(page, /match history connected/);
+  assert.match(page, /Every linked appearance/);
+  assert.match(page, /without fetching external data/);
+  assert.match(page, /TEAM PERFORMANCE/);
+  assert.match(page, /Form from uploaded scorecards/);
+  assert.match(page, /PERFORMANCE INTELLIGENCE/);
+  assert.match(page, /aria-label="Choose performance season"/);
+  assert.match(page, /<option value="all">All-time career<\/option>/);
+  assert.ok(page.indexOf('aria-label="Choose performance season"') < page.indexOf("Explore the player’s game"), "the season filter belongs to The complete player summary");
+  assert.match(page, /ALL-TIME STATISTICS/);
+  assert.match(page, /summaryGames/);
+  assert.match(page, /summaryRuns/);
+  assert.match(page, /summaryWickets/);
+  assert.match(page, /summaryContribution/);
+  assert.match(page, /seasonNames\[item\.teamSeasonId\]/);
+  assert.match(page, /String\(match\.teamSeasonId\) === activeSeasonFilter/);
+  assert.match(page, /seasonFilteredMatches/);
+  assert.doesNotMatch(page, /Selected season scorecards/);
+  assert.match(page, /Selected season appearances/);
+  assert.match(page, /No linked scorecards in this season yet/);
+  assert.match(page, /setPlayerSeasonFilter\("all"\)/);
+  assert.match(page, /SCORING DNA/);
+  assert.match(page, /BOWLING CONTROL/);
+  assert.match(page, /FORM LAB/);
+  assert.match(page, /PLAYER FINGERPRINT/);
+  assert.match(page, /BATTING PROFILE/);
+  assert.match(page, /Efficiency &amp; wicket resilience/);
+  assert.match(page, /DOT AVOIDANCE/);
+  assert.match(page, /Balls \/ dismissal/);
+  assert.match(page, /DISMISSAL PATTERN/);
+  assert.match(page, /BOWLING PROFILE/);
+  assert.match(page, /Discipline &amp; conceded runs/);
+  assert.match(page, /DOT PRESSURE/);
+  assert.match(page, /RUNS CONCEDED BY DELIVERY/);
+  assert.match(page, /summaryWides/);
+  assert.match(page, /summaryNoBalls/);
+  assert.match(page, /Dot Ball Avoiders/);
+  assert.match(page, /Lowest percentage of dot balls faced/);
+  assert.match(page, /Wicket Resilience/);
+  assert.match(page, /Most deliveries faced per dismissal/);
+  assert.match(page, /Run Rotators/);
+  assert.match(page, /TEAM SCORING CONSISTENCY/);
+  assert.match(page, /TEAM WICKET PRESSURE ANALYSIS/);
+  assert.match(page, /TEAM WICKET RISK PATTERN/);
+  assert.match(page, /TEAM RUN TYPES/);
+  assert.match(page, /INNINGS SPLITS/);
+  assert.match(page, /TEAM &amp; PLAYER INTELLIGENCE/);
+  assert.match(page, /SEASON PERFORMANCE BOARD/);
+  assert.match(page, /rankingMetricOptions/);
+  assert.match(page, /Choose what matters/);
+  assert.match(page, /COMPLETE TEAM BOARD/);
+  assert.match(page, /Every player, one clear comparison/);
+  assert.match(page, /Search team board players/);
+  assert.match(page, /Filter team board participation/);
+  assert.match(page, /Sort team board/);
+  assert.match(page, /rankingTablePlayers/);
+  assert.match(page, /chooseRankingTableSort/);
+  assert.match(page, /Reset board/);
+  assert.match(page, /BEYOND THE LEADERBOARD/);
+  assert.doesNotMatch(page, /className="right-rail"/);
+  assert.doesNotMatch(page, /Scorecard powered/);
+  assert.match(page, /PlayerPerformanceCharts player=\{viewedProfile\} activities=\{activities\}/);
+  assert.doesNotMatch(page, /PlayerPerformanceCharts player=\{statsProfile\} activities=\{activities\}/);
+  assert.match(page, /TeamPerformanceCharts teamName=\{team\.name\}/);
+  assert.ok(page.indexOf("TeamPerformanceCharts teamName={team.name}") > page.indexOf('{view === "performance"'), "team intelligence lives under Team Stats");
+  assert.ok(page.indexOf("TeamPerformanceCharts teamName={team.name}") < page.indexOf('{view === "team"'), "Team Stats ends before Team Admin");
+  assert.ok(page.indexOf("PLAYED AS A FILLER?") > page.indexOf('{view === "player"'), "filler tools live on the player profile");
+  assert.doesNotMatch(page, /view === "insights"/);
+  assert.doesNotMatch(page, /displayName: registerName/);
+});
+
+test("keeps dense cricket data responsive and touch friendly", async () => {
+  const styles = await readFile(new URL("app/globals.css", root), "utf8");
+
+  assert.match(styles, /\.scorecard-stat-table\{width:100%;min-width:0;overflow-x:auto/);
+  assert.match(styles, /\.scorecard-stat-table>\.stat-head,\.scorecard-stat-table>\.stat-row\{min-width:650px\}/);
+  assert.match(styles, /@media\(max-width:900px\)/);
+  assert.match(styles, /\.mobile-scroll-hint\{display:block/);
+  assert.match(styles, /\.page-intro\{align-items:stretch;flex-direction:column/);
+  assert.match(styles, /\.main-column input,\.main-column select,\.main-column textarea\{font-size:16px\}/);
+  assert.match(styles, /\.app-layout\{grid-template-columns:215px minmax\(0,1fr\);max-width:1320px/);
+  assert.match(styles, /\.overline\{text-decoration:none\}/);
+  assert.match(styles, /\.team-admin-import>button\{grid-column:1\/-1;width:100%;min-height:44px;white-space:nowrap\}/);
+  assert.match(styles, /\.ranking-table-toolbar\{display:grid/);
+  assert.match(styles, /\.ranking-table-card th:first-child,\.ranking-table-card td:first-child\{position:sticky/);
+});
+
+test("keeps fixtures separate from completed scorecard imports", async () => {
+  const fixturesRoute = await readFile(new URL("app/api/fixtures/route.ts", root), "utf8");
+  const teamsRoute = await readFile(new URL("app/api/teams/route.ts", root), "utf8");
+
+  assert.match(fixturesRoute, /Completed games must be uploaded as HTML scorecards/);
+  assert.match(fixturesRoute, /body\.type === "manual"/);
+  assert.doesNotMatch(fixturesRoute, /captain/i);
+  assert.match(fixturesRoute, /teamSeasonId, scoresheetUrl: "manual"/);
+  assert.match(fixturesRoute, /export async function DELETE/);
+  assert.doesNotMatch(fixturesRoute, /new URL\(/);
+  assert.doesNotMatch(fixturesRoute, /body\.scoresheetUrl/);
+  assert.match(teamsRoute, /Team sync imports roster identity only\. Every statistic comes from uploaded scorecards/);
+  assert.match(teamsRoute, /parsedPlayers\.push\(\{ name: playerName, games: 0, runs: 0/);
+  assert.match(teamsRoute, /scorecardRows/);
+  assert.match(teamsRoute, /eq\(syncedMatches\.teamSeasonId, season\.id\)/);
+  assert.match(teamsRoute, /requestedTeamId/);
+  assert.match(teamsRoute, /Only the Die Bron team can be managed in this portal/);
+  assert.match(teamsRoute, /parsed\.team\.externalTeamId !== existing\.externalTeamId/);
+  assert.match(teamsRoute, /eq\(teamSeasons\.externalSeasonId, parsed\.season\.externalSeasonId\)/);
+  assert.match(teamsRoute, /isCurrent: true/);
+  assert.match(teamsRoute, /action === "createSeason"/);
+  assert.match(teamsRoute, /action === "editSeason"/);
+  assert.match(teamsRoute, /body\.action === "setRosterPlayerActive"/);
+  assert.match(teamsRoute, /set\(\{ active \}\)/);
+  assert.match(teamsRoute, /preservedPlayerHistory: true/);
+  assert.doesNotMatch(teamsRoute, /delete\(seasonPlayerStats\)/);
+  assert.match(teamsRoute, /export async function DELETE/);
+  assert.match(teamsRoute, /preservedPlayerHistory: true/);
+  assert.match(teamsRoute, /delete\(fixtures\)/);
+  assert.doesNotMatch(teamsRoute, /upcoming fixture/);
+  assert.doesNotMatch(teamsRoute, /seasonFixtures/);
+  assert.doesNotMatch(teamsRoute, /Fixtures and Results for Current Season/);
+});
+
+test("keeps player identities and season statistics separate", async () => {
+  const schema = await readFile(new URL("db/schema.ts", root), "utf8");
+
+  assert.match(schema, /export const teamSeasons/);
+  assert.match(schema, /export const playerProfiles/);
+  assert.match(schema, /export const seasonPlayerStats/);
+  assert.match(schema, /export const performanceClaims/);
+  assert.match(schema, /export const playerProfileLinks/);
+  assert.match(schema, /team_seasons_external_unique/);
+  assert.match(schema, /performance_claims_performance_unique/);
+  assert.match(schema, /player_profile_links_source_unique/);
+  assert.match(schema, /export const teamInvitations/);
+  assert.match(schema, /export const matchComments/);
+  assert.match(schema, /export const matchKudos/);
+  assert.match(schema, /export const challengeEntries/);
+  assert.match(schema, /export const playerFollows/);
+  assert.match(schema, /homeSkin1/);
+  assert.match(schema, /awayPoints/);
+  assert.match(schema, /export const matchInnings/);
+  assert.match(schema, /export const matchPairs/);
+  assert.match(schema, /export const matchOvers/);
+  assert.match(schema, /export const matchDeliveries/);
+  assert.match(schema, /removedAt/);
+  assert.match(schema, /isCurrent/);
+  assert.match(schema, /teamSeasonId/);
+  assert.match(schema, /matchType: text\("match_type"\)/);
+  assert.match(schema, /leagueName/);
+  assert.match(schema, /removedAt: timestamp\("removed_at"/);
+});
+
+test("keeps the portal locked to the existing Die Bron team", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const teamsRoute = await readFile(new URL("app/api/teams/route.ts", root), "utf8");
+  const scoresheetRoute = await readFile(new URL("app/api/scoresheets/route.ts", root), "utf8");
+  const fixturesRoute = await readFile(new URL("app/api/fixtures/route.ts", root), "utf8");
+
+  assert.match(page, /Import completed games first, then manage the season/);
+  assert.match(page, /＋ Update scores/);
+  assert.match(page, /const team = teams\[0\] \?\? null/);
+  assert.match(page, /const canManageTeam =/);
+  assert.doesNotMatch(page, /id="add-team"|Add a team|Confirm & add team|workspaceTeams/);
+  assert.doesNotMatch(page, /CAPTAIN WORKSPACE|CAPTAIN REGISTRATION|Register as a captain|co-captain|captainEmail|\/api\/captains|\/api\/team-access/i);
+
+  assert.match(teamsRoute, /body\.action === "previewTeam" \|\| body\.action === "createTeam"/);
+  assert.match(teamsRoute, /ActionHQ is configured for the existing Die Bron team only/);
+  assert.match(teamsRoute, /normalizePlayerName\(team\.name\) === "die bron"/);
+  assert.doesNotMatch(teamsRoute, /captain|membership/i);
+  assert.doesNotMatch(scoresheetRoute, /captain|captainEmail|captainManages/i);
+  assert.doesNotMatch(fixturesRoute, /captain|captainEmail|captainManages/i);
+});
+
+test("refreshes scorecards without deleting claimed performances", async () => {
+  const route = await readFile(new URL("app/api/scoresheets/route.ts", root), "utf8");
+  const playersRoute = await readFile(new URL("app/api/players/route.ts", root), "utf8");
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+
+  assert.doesNotMatch(route, /db\.delete\(matchPerformances\)/);
+  assert.match(route, /db\.update\(matchPerformances\)/);
+  assert.match(route, /savedPerformance/);
+  assert.match(route, /parseInningsTable/);
+  assert.match(route, /db\.insert\(matchDeliveries\)/);
+  assert.match(route, /export async function DELETE/);
+  assert.match(route, /removedAt: new Date\(\)\.toISOString\(\)/);
+  assert.match(route, /removedAt: null/);
+  assert.match(route, /isNull\(syncedMatches\.removedAt\)/);
+  assert.match(route, /request\.formData\(\)/);
+  assert.match(route, /form\.getAll\("scorecards"\)/);
+  assert.match(route, /form\.get\("scoresheetUrl"\)/);
+  assert.match(route, /form\.get\("teamSeasonId"\)/);
+  assert.match(route, /form\.get\("matchType"\)/);
+  assert.match(route, /\["league", "friendly", "grading"\]/);
+  assert.match(route, /matchType, teamSeasonId/);
+  assert.match(route, /AbortSignal\.timeout\(15_000\)/);
+  assert.match(route, /if \(existing\)/);
+  assert.match(route, /set\(\{ matchType, teamSeasonId: belongsToTeam \? teamSeasonId : null, removedAt: null \}\)/);
+  assert.match(route, /teamSeasonId: teamSeasonId \?\? existing\.teamSeasonId/);
+  assert.match(route, /belongsToTeam \? teamSeasonId : null/);
+  assert.match(route, /linkMatchPerformancesToRoster/);
+  assert.match(route, /actionsport\.spawtz\.com/);
+  assert.match(route, /FixtureId/);
+  assert.match(route, /fetch\(url/);
+  assert.match(route, /Choose one import method/);
+  assert.match(playersRoute, /inArray\(performanceClaims\.playerProfileId, profileIds\),\s*isNull\(syncedMatches\.removedAt\)/);
+  assert.match(playersRoute, /and\(eq\(syncedMatches\.fixtureId, fixtureId\), isNull\(syncedMatches\.removedAt\)\)/);
+  assert.match(page, /async function refreshCalculatedStats/);
+  assert.match(page, /every team and player statistic was recalculated/);
+});
+
+test("uses the official Action Cricket scorecard and statistic abbreviations", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const scoresheetRoute = await readFile(new URL("app/api/scoresheets/route.ts", root), "utf8");
+  const teamsRoute = await readFile(new URL("app/api/teams/route.ts", root), "utf8");
+
+  assert.match(page, /function isWideOutcome/);
+  assert.match(page, /\["C", "B", "R", "S", "ST", "M", "HW", "LBW", "I", "OBS", "I\/OBS"\]/);
+  assert.match(page, /W means wide here—not wicket/);
+  assert.match(page, /C\/B\/R\/S<\/b> Dismissal/);
+  assert.match(page, /\["RCA", summaryGames \? Math\.round\(summaryRunsConceded \/ summaryGames/);
+  assert.doesNotMatch(page, /\["ECO", summaryEconomy/);
+  assert.doesNotMatch(page, /\["W", "C", "R", "B"/);
+
+  assert.match(scoresheetRoute, /isExtra: isExtraOutcome\(outcome\)/);
+  assert.match(scoresheetRoute, /const outcome = firstOutcome \|\| secondOutcome \|\| "0"/);
+  assert.match(scoresheetRoute, /<td\\b\(\[\^>\]\*\?\)\(\?:\\\/\\s\*>\|>/);
+  assert.match(scoresheetRoute, /runs: summary \? value\(summary\[2\]\) : batterOneTotal \+ batterTwoTotal/);
+  assert.doesNotMatch(scoresheetRoute, /isExtra: ballIndex >= 6/);
+  assert.match(page, /WKTS \/ RUNS/);
+  assert.doesNotMatch(page, />W \/ RUNS</);
+
+  assert.match(teamsRoute, /timesOut: timesOutByProfile\.get\(canonicalId\) \?\? 0/);
+  assert.match(teamsRoute, /runsConcededAverage: average\(totals\.runsConceded, totals\.games\)/);
+  assert.doesNotMatch(teamsRoute, /runsConcededAverage: average\(totals\.runsConceded, totals\.oversBowled\)/);
+});
+
+test("batches large roster-link lookups", async () => {
+  const linking = await readFile(new URL("lib/profile-linking.ts", root), "utf8");
+
+  assert.match(linking, /index \+= 50/);
+  assert.match(linking, /performanceIds\.slice\(index, index \+ 50\)/);
+  assert.match(linking, /reconcileTeamPlayerProfiles/);
+  assert.match(linking, /coalesce\(\$\{playerProfileLinks\.ownerProfileId\}/);
+  assert.match(linking, /registered\.length > 1/);
+});
+
+test("keeps Neon credentials server-side behind the existing API boundary", async () => {
+  const [page, schema, database, healthRoute, config, hosting, packageJson, importer] = await Promise.all([
+    readFile(new URL("app/page.tsx", root), "utf8"),
+    readFile(new URL("db/schema.ts", root), "utf8"),
+    readFile(new URL("db/index.ts", root), "utf8"),
+    readFile(new URL("app/api/database/route.ts", root), "utf8"),
+    readFile(new URL("drizzle.config.ts", root), "utf8"),
+    readFile(new URL(".openai/hosting.json", root), "utf8"),
+    readFile(new URL("package.json", root), "utf8"),
+    readFile(new URL("scripts/migrate-sqlite-to-neon.mjs", root), "utf8"),
+  ]);
+
+  assert.match(schema, /drizzle-orm\/pg-core/);
+  assert.match(schema, /pgTable\("teams"/);
+  assert.match(schema, /serial\("id"\)\.primaryKey\(\)/);
+  assert.match(schema, /boolean\("is_current"\)/);
+  assert.doesNotMatch(schema, /sqlite-core|sqliteTable/);
+
+  assert.match(database, /@neondatabase\/serverless/);
+  assert.match(database, /drizzle-orm\/neon-http/);
+  assert.match(database, /process\.env\.POSTGRES_URL/);
+  assert.doesNotMatch(page, /POSTGRES_URL|@neondatabase\/serverless|from ["'][^"']*\/db["']/);
+  assert.match(page, /fetch\("\/api\/teams"\)/);
+
+  assert.match(healthRoute, /export async function GET/);
+  assert.doesNotMatch(healthRoute, /export async function POST/);
+  assert.match(healthRoute, /select 1 as ok/);
+  assert.doesNotMatch(healthRoute, /error\.message/);
+  assert.match(config, /dialect: "postgresql"/);
+  assert.match(config, /process\.env\.POSTGRES_URL/);
+  assert.match(hosting, /"d1": null/);
+  assert.match(packageJson, /"@neondatabase\/serverless": "\^1\.1\.0"/);
+
+  assert.match(importer, /assertEmptyDestination/);
+  assert.match(importer, /postgres\.query\(query, values\)/);
+  assert.match(importer, /BOOLEAN_COLUMNS/);
+  assert.match(importer, /resetSequence/);
+  assert.doesNotMatch(importer, /eval\(|new Function/);
+});
+
+test("creates and invites players only from team-synced rosters", async () => {
+  const playersRoute = await readFile(new URL("app/api/players/route.ts", root), "utf8");
+  const communityRoute = await readFile(new URL("app/api/community/route.ts", root), "utf8");
+
+  assert.match(playersRoute, /Choose a player imported by a team sync/);
+  assert.match(playersRoute, /innerJoin\(seasonPlayerStats/);
+  assert.match(playersRoute, /That player is not part of a synced team roster/);
+  assert.match(playersRoute, /visibleDirectoryProfiles/);
+  assert.match(playersRoute, /linkedSourceIds\.has\(profile\.id\)/);
+  assert.match(playersRoute, /scorecardsBySeason/);
+  assert.match(playersRoute, /scoredSeasonHistory/);
+  assert.match(playersRoute, /teamSeasonId: syncedMatches\.teamSeasonId/);
+  assert.doesNotMatch(playersRoute, /db\.insert\(playerProfiles\)/);
+  assert.match(communityRoute, /Choose a player imported from this team's synced roster/);
+  assert.match(communityRoute, /innerJoin\(teamSeasons/);
+  assert.doesNotMatch(communityRoute, /action === "comment"/);
+  assert.doesNotMatch(communityRoute, /matchComments/);
+});
