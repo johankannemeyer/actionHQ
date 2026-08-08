@@ -369,3 +369,28 @@ img,video,canvas,svg{max-width:100%}
   .season-flow,.feed-tabs,.metric-switch,.import-method-switch{overflow-x:auto;flex-wrap:nowrap}
   .team-image-card{flex-wrap:wrap}
 }
+
+/* ===== Nav SVG icons ===== */
+.sidebar nav button span{display:inline-flex;align-items:center;justify-content:center;width:20px}
+.sidebar nav button span svg{width:19px;height:19px;display:block}
+.mobile-nav button span svg{width:22px;height:22px;display:block;margin:0 auto}
+@media(max-width:760px){
+  .mobile-nav{height:64px;box-shadow:0 -2px 12px rgba(7,30,43,.09)}
+  .mobile-nav button{gap:4px;font-size:9px;font-weight:800;color:#57686f}
+  .mobile-nav button span{font-size:0}
+  .mobile-nav button span svg{width:23px;height:23px}
+  .mobile-nav button.active{color:var(--orange)}
+  /* Larger, more legible data on phones */
+  .stat-cards strong,.team-summary strong{font-size:25px}
+  .stat-cards span,.team-summary small{font-size:9px}
+  .directory-stats b{font-size:17px}
+  .directory-stats small{font-size:8px}
+  .career-stat-grid strong{font-size:20px}
+  .match-intelligence-kpis strong{font-size:21px}
+  .match-intelligence-kpis small{font-size:8px}
+  .scorecard-highlights article>strong{font-size:23px}
+  .player-depth-metrics strong,.bowling-metric-grid strong{font-size:17px}
+  .home-match-readout b{font-size:13px}
+  .home-record-grid strong{font-size:20px}
+  .rail-leader small,.search-result small,.club-link small,.squad-list small{font-size:9px}
+}

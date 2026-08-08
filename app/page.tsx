@@ -1,6 +1,7 @@
 "use client";
 
-import { CSSProperties, FormEvent, useEffect, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useMemo, useState, createContext, useContext } from "react";
+import type { ReactNode } from "react";
 
 type Player = { id: number; playerProfileId?: number; linkedOwnerId?: number | null; linkedAppearances?: number; name: string; active?: boolean; registeredAt?: string | null; games: number; runs: number; runsAverage: number; strikeRate: number; wickets: number; contribution: number; contributionAverage: number };
 type Fixture = { id: number; round: string; matchDate: string; matchTime: string; court: string; opponent: string; result: string };
@@ -64,10 +65,14 @@ function rankingTableDisplay(player: Player, sort: RankingTableSort) {
   return `${rankingMetricDisplay(player, sort)} ${metric?.short ?? ""}`.trim();
 }
 
+const PlayerImageContext = createContext<Map<string, string> | null>(null);
+
 function Initials({ name, large = false, src = null }: { name: string; large?: boolean; src?: string | null }) {
+  const imageMap = useContext(PlayerImageContext);
+  const resolved = src ?? (name ? imageMap?.get(playerKey(name)) ?? null : null);
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("");
-  const className = `avatar${large ? " avatar-large" : ""}${src ? " has-photo" : ""}`;
-  return <span className={className}>{src ? <img src={src} alt={name} /> : (initials || "AH")}</span>;
+  const className = `avatar${large ? " avatar-large" : ""}${resolved ? " has-photo" : ""}`;
+  return <span className={className}>{resolved ? <img src={resolved} alt={name} /> : (initials || "AH")}</span>;
 }
 
 async function readImageThumbnail(file: File, max = 256): Promise<string> {
@@ -459,6 +464,11 @@ export default function Home() {
   const [scorecardInningsNumber, setScorecardInningsNumber] = useState(1);
   const team = teams[0] ?? null;
   const canManageTeam = !!team;
+  const playerImages = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of [...directoryProfiles, ...profiles]) if (entry.imageUrl) map.set(playerKey(entry.displayName), entry.imageUrl);
+    return map;
+  }, [profiles, directoryProfiles]);
   const profile = profiles.find((item) => item.id === selectedProfileId) ?? null;
   const viewedProfile = directoryProfiles.find((item) => item.id === viewedProfileId) ?? profiles.find((item) => item.id === viewedProfileId) ?? null;
   const scorecardMatch = activities.find((item) => item.id === scorecardMatchId) ?? null;
@@ -920,16 +930,16 @@ export default function Home() {
     setView("team");
     window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
-  const navItems: Array<{ id: View; label: string; mobileLabel: string; icon: string }> = [
-    { id: "feed", label: "Home", mobileLabel: "Home", icon: "⌂" },
-    { id: "players", label: "Players", mobileLabel: "Players", icon: "●" },
-    { id: "performance", label: "Team Stats", mobileLabel: "Stats", icon: "↗" },
-    { id: "fixtures", label: "Games & Scores", mobileLabel: "Games", icon: "▦" },
-    { id: "leaderboards", label: "Rankings", mobileLabel: "Rankings", icon: "♜" },
-    { id: "team", label: "Team Admin", mobileLabel: "Team", icon: "◉" },
+  const navItems: Array<{ id: View; label: string; mobileLabel: string; icon: ReactNode }> = [
+    { id: "feed", label: "Home", mobileLabel: "Home", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> },
+    { id: "players", label: "Players", mobileLabel: "Players", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.6 20c0-3.6 2.9-6 6.4-6s6.4 2.4 6.4 6"/><path d="M16.8 5.3a3 3 0 0 1 0 5.6"/><path d="M18 14.2c2.3.5 3.7 2.3 3.7 4.9"/></svg> },
+    { id: "performance", label: "Team Stats", mobileLabel: "Stats", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4v16h16"/><path d="M7.5 14l3.2-3.3 3 3L21 7.5"/></svg> },
+    { id: "fixtures", label: "Games & Scores", mobileLabel: "Games", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.3"/></svg> },
+    { id: "leaderboards", label: "Rankings", mobileLabel: "Rankings", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1.4A3.6 3.6 0 0 0 7.6 11M17 6h3v1.4A3.6 3.6 0 0 1 16.4 11"/><path d="M12 13v3.5M8.5 21h7M9.6 21l.6-4h3.6l.6 4"/></svg> },
+    { id: "team", label: "Team Admin", mobileLabel: "Team", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7.5 3v5.6c0 4.3-3.2 7.5-7.5 9.4-4.3-1.9-7.5-5.1-7.5-9.4V6z"/><path d="M9.2 12.1l1.9 1.9 3.8-3.9"/></svg> },
   ];
 
-  return <main className="app-root">
+  return <PlayerImageContext.Provider value={playerImages}><main className="app-root">
     <header className="app-header"><button className="wordmark" onClick={() => navigateTo("feed")}><i />ACTION<span>HQ</span><small>BETA</small></button><form className="header-search" onSubmit={(event) => { event.preventDefault(); navigateTo("search"); }}><span>⌕</span><input aria-label="Search players or fixtures" value={searchQuery} onFocus={() => navigateTo("search")} onChange={(event) => { setSearchQuery(event.target.value); setView("search"); }} placeholder="Search Die Bron players or fixture IDs" /></form><button className="header-search-compact" aria-label="Open search" onClick={() => navigateTo("search")}>⌕ <span>Search</span></button><button className="sync-quick" onClick={() => openTeamSection("scorecard-imports")}>＋ Update scores</button><button className="team-button" aria-label="Open Team Admin" onClick={() => navigateTo("team")}><Initials name={team?.name ?? "Die Bron"} src={team?.imageUrl ?? null} /><span className="team-button-copy"><strong>{team?.name ?? "Die Bron"}</strong><small>Single-team portal</small></span><b>→</b></button></header>
 
     <div className="app-layout">
@@ -1173,5 +1183,5 @@ export default function Home() {
     </div>
 
     <nav className="mobile-nav" aria-label="Mobile navigation">{navItems.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => navigateTo(item.id)}><span>{item.icon}</span>{item.mobileLabel}</button>)}</nav>
-  </main>;
+  </main></PlayerImageContext.Provider>;
 }
