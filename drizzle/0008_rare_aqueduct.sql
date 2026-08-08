@@ -1,0 +1,1 @@
+ALTER TABLE `synced_matches` ADD `removed_at` text;
