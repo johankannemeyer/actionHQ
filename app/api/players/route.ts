@@ -202,6 +202,18 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json() as { action?: string; playerId?: number; displayName?: string; email?: string; phone?: string; bio?: string; role?: string; preferredVenue?: string; imageUrl?: string | null; ownerPlayerId?: number; sourcePlayerId?: number };
     const db = getDb();
+    if (body.action === "setPlayerImage") {
+      const playerId = Number(body.playerId);
+      if (!playerId) return Response.json({ error: "Player is required." }, { status: 400 });
+      const img = body.imageUrl;
+      let imageUrl: string | null;
+      if (img === null || img === undefined || img === "") imageUrl = null;
+      else if (typeof img === "string" && img.startsWith("data:image/") && img.length <= 1_500_000) imageUrl = img;
+      else return Response.json({ error: "Image must be a valid image file under about 1MB." }, { status: 400 });
+      const [imaged] = await db.update(playerProfiles).set({ imageUrl }).where(eq(playerProfiles.id, playerId)).returning();
+      if (!imaged) return Response.json({ error: "Player profile not found." }, { status: 404 });
+      return Response.json({ player: await playerBundle(imaged) });
+    }
     if (body.action === "update") {
       const playerId = Number(body.playerId);
       const displayName = String(body.displayName ?? "").trim();

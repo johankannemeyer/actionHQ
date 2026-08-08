@@ -901,6 +901,17 @@ export default function Home() {
     setNotice(imageUrl ? "Team image updated." : "Team image removed.");
   }
 
+  async function savePlayerImage(playerId: number, imageUrl: string | null) {
+    setWorking("account"); setNotice("");
+    const response = await fetch("/api/players", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setPlayerImage", playerId, imageUrl }) });
+    const data = await response.json(); setWorking("");
+    if (!response.ok) return setNotice(data.error ?? "Could not update the player photo.");
+    setProfiles((current) => current.map((item) => item.id === playerId ? { ...item, imageUrl } : item));
+    setDirectoryProfiles((current) => current.map((item) => item.id === playerId ? { ...item, imageUrl } : item));
+    if (selectedProfileId === playerId) setAccountImage(imageUrl);
+    setNotice(imageUrl ? "Player photo updated." : "Player photo removed.");
+  }
+
   function openPublicPlayer(id: number) { setViewedProfileId(id); setPlayerSeasonFilter("all"); setView("player"); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function openScorecard(id: number) { setScorecardMatchId(id); setScorecardInningsNumber(1); setView("scorecard"); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function navigateTo(nextView: View) { setView(nextView); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -1092,6 +1103,7 @@ export default function Home() {
 
         {view === "player" && viewedProfile && <>
           <button className="back-link" onClick={() => navigateTo("players")}>← All player pages</button>
+          <section className="team-image-card"><Initials name={viewedProfile.displayName} large src={viewedProfile.imageUrl} /><div><strong>{viewedProfile.displayName}</strong><small>Player profile photo</small></div><div className="avatar-upload"><label className="avatar-upload-button">{viewedProfile.imageUrl ? "Change photo" : "Upload photo"}<input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; try { await savePlayerImage(viewedProfile.id, await readImageThumbnail(file)); } catch { setNotice("Could not read that image."); } }} /></label>{viewedProfile.imageUrl && <button type="button" className="avatar-remove" disabled={working === "account"} onClick={() => savePlayerImage(viewedProfile.id, null)}>Remove</button>}</div></section>
           <PlayerPerformanceCharts player={viewedProfile} activities={activities} seasonFilter={playerSeasonFilter} onSeasonFilterChange={setPlayerSeasonFilter} seasonNames={seasonNames} />
           {profile?.id === viewedProfile.id && <form className="filler-card" onSubmit={(event) => { event.preventDefault(); linkFillerAppearance(); }}><div><p className="overline">PLAYED AS A FILLER?</p><h2>Add the match to this profile</h2><p>Import the scorecard under Team Admin first, then enter its Fixture ID here. ActionHQ matches the player name without fetching external data.</p></div><label>Fixture ID<input required inputMode="numeric" pattern="[0-9]+" value={fillerFixtureId} onChange={(event) => setFillerFixtureId(event.target.value)} /></label><button disabled={working === "filler"}>{working === "filler" ? "Adding…" : "Add appearance"}</button></form>}
           {!!scorecardCandidates.length && profile?.id === viewedProfile.id && <div className="candidate-card"><strong>Choose the matching scorecard name</strong><p>This is needed only when the scorecard used a different player name.</p><div>{scorecardCandidates.map((candidate) => <button key={`${candidate.teamName}-${candidate.name}`} onClick={() => linkFillerAppearance(candidate.name)}><Initials name={candidate.name} /><span><b>{candidate.name}</b><small>{candidate.teamName}</small></span>＋</button>)}</div></div>}
