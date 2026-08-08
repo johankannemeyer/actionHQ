@@ -394,3 +394,20 @@ img,video,canvas,svg{max-width:100%}
   .home-record-grid strong{font-size:20px}
   .rail-leader small,.search-result small,.club-link small,.squad-list small{font-size:9px}
 }
+
+/* ===== Complete Team Board: readable + frozen player column on mobile ===== */
+@media(max-width:760px){
+  .ranking-table-card table{min-width:600px}
+  .ranking-table-card th{font-size:8px;height:34px}
+  .ranking-table-card td{font-size:11px;height:46px;padding:6px 8px}
+  .ranking-table-card td.active{font-size:12px}
+  .ranking-table-card td>button b{font-size:11px}
+  .ranking-table-card td>button small{font-size:8px}
+  .ranking-table-card td .avatar{width:26px;height:26px}
+  .ranking-table-card th:first-child,.ranking-table-card td:first-child{position:sticky;left:0;z-index:2;background:#fff;width:38px}
+  .ranking-table-card th:first-child{background:#f7f8f5}
+  .ranking-table-card th:nth-child(2),.ranking-table-card td:nth-child(2){position:sticky;left:38px;z-index:2;background:#fff;min-width:140px;box-shadow:7px 0 7px -7px rgba(0,0,0,.16)}
+  .ranking-table-card th:nth-child(2){background:#f7f8f5}
+  .ranking-table-card td:nth-child(2).active{background:#f4f8df}
+  .ranking-table-toolbar{grid-template-columns:1fr;gap:10px}
+}

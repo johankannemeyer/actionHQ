@@ -448,6 +448,7 @@ export default function Home() {
   const [teamStatsMatchFilter, setTeamStatsMatchFilter] = useState<TeamStatsMatchFilter>("all");
   const [teamStatsResultFilter, setTeamStatsResultFilter] = useState<TeamStatsResultFilter>("all");
   const [teamStatsSort, setTeamStatsSort] = useState<TeamStatsSort>("oldest");
+  const [teamStatsAllTime, setTeamStatsAllTime] = useState(false);
   const [fillerFixtureId, setFillerFixtureId] = useState("2336793");
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -563,7 +564,7 @@ export default function Home() {
       const parsed = Date.parse(match.playedAt);
       return Number.isNaN(parsed) ? match.id : parsed;
     };
-    return seasonActivities.filter((match) => {
+    return (teamStatsAllTime ? teamActivities : seasonActivities).filter((match) => {
       if (teamStatsMatchFilter !== "all" && match.matchType !== teamStatsMatchFilter) return false;
       if (teamStatsResultFilter === "all") return true;
       const isHome = match.homeTeam.toLowerCase() === team?.name.toLowerCase();
@@ -572,7 +573,7 @@ export default function Home() {
       const result = scored > conceded ? "win" : scored < conceded ? "loss" : "draw";
       return result === teamStatsResultFilter;
     }).sort((a, b) => teamStatsSort === "oldest" ? timestamp(a) - timestamp(b) : timestamp(b) - timestamp(a));
-  }, [seasonActivities, team, teamStatsMatchFilter, teamStatsResultFilter, teamStatsSort]);
+  }, [seasonActivities, teamActivities, teamStatsAllTime, team, teamStatsMatchFilter, teamStatsResultFilter, teamStatsSort]);
   const seasonTeamSummary = useMemo(() => {
     const totals = { games: seasonActivities.length, wins: 0, losses: 0, draws: 0, scored: 0, conceded: 0 };
     for (const match of seasonActivities) {
@@ -1030,16 +1031,16 @@ export default function Home() {
           <section className="season-context-bar">
             <div><p className="overline">TEAM STATS VIEW</p><h2>Choose the season and matches to analyse</h2><span>Every chart and headline number below updates with these choices.</span></div>
             <div className="season-context-controls">
-              <label><span>Season</span>{team?.seasons?.length ? <select aria-label="Choose team statistics season" value={season?.id ?? ""} onChange={(event) => setSelectedSeasonId(Number(event.target.value))}>{team.seasons.map((item) => <option key={item.id} value={item.id}>{item.name || `Season ${item.externalSeasonId}`}</option>)}</select> : <b>Current season</b>}</label>
+              <label><span>Season</span>{team?.seasons?.length ? <select aria-label="Choose team statistics season" value={teamStatsAllTime ? "all" : (season?.id ?? "")} onChange={(event) => { const value = event.target.value; if (value === "all") { setTeamStatsAllTime(true); } else { setTeamStatsAllTime(false); setSelectedSeasonId(Number(value)); } }}><option value="all">All-time (every season)</option>{team.seasons.map((item) => <option key={item.id} value={item.id}>{item.name || `Season ${item.externalSeasonId}`}</option>)}</select> : <b>Current season</b>}</label>
               <label><span>Game type</span><select aria-label="Filter team statistics by game type" value={teamStatsMatchFilter} onChange={(event) => setTeamStatsMatchFilter(event.target.value as TeamStatsMatchFilter)}><option value="all">All game types</option><option value="league">League</option><option value="friendly">Friendly</option><option value="grading">Grading</option></select></label>
               <label><span>Result</span><select aria-label="Filter team statistics by result" value={teamStatsResultFilter} onChange={(event) => setTeamStatsResultFilter(event.target.value as TeamStatsResultFilter)}><option value="all">All results</option><option value="win">Wins</option><option value="loss">Losses</option><option value="draw">Draws</option></select></label>
               <label><span>Chart order</span><select aria-label="Sort team statistics matches" value={teamStatsSort} onChange={(event) => setTeamStatsSort(event.target.value as TeamStatsSort)}><option value="oldest">Oldest to newest</option><option value="newest">Newest to oldest</option></select></label>
             </div>
-            <strong>{teamStatsActivities.length}<small>of {seasonActivities.length} scorecards</small></strong>
+            <strong>{teamStatsActivities.length}<small>of {teamStatsAllTime ? teamActivities.length : seasonActivities.length} scorecards</small></strong>
           </section>
           <section className="team-stats-hero">
             <span className="team-stats-rings" aria-hidden="true" />
-            <header><div className="team-stats-team"><Initials name={team?.name ?? "ActionHQ"} large src={team?.imageUrl ?? null} /><span><small>TEAM STATISTICS</small><strong>{team?.name ?? "Your team"}</strong><em>{season?.leagueName ?? "Action Cricket"}</em></span></div><div className="season-current-pill"><span>VIEWING</span><strong>{season?.name || "Current season"}</strong></div></header>
+            <header><div className="team-stats-team"><Initials name={team?.name ?? "ActionHQ"} large src={team?.imageUrl ?? null} /><span><small>TEAM STATISTICS</small><strong>{team?.name ?? "Your team"}</strong><em>{season?.leagueName ?? "Action Cricket"}</em></span></div><div className="season-current-pill"><span>VIEWING</span><strong>{teamStatsAllTime ? "All-time" : (season?.name || "Current season")}</strong></div></header>
             <div className="team-stats-copy"><p>THE TEAM PERFORMANCE PICTURE</p><h1>How {team?.name ?? "the team"} performs.</h1><span>See the scoring habits, bowling pressure and match patterns created by every completed scorecard in this season.</span></div>
             <div className="team-stats-kpis"><article><span>GAMES</span><strong>{teamStatsSummary.games}</strong><small>matching scorecards</small></article><article className="positive"><span>RECORD</span><strong>{teamStatsSummary.wins}–{teamStatsSummary.losses}</strong><small>{teamStatsSummary.draws} draw{teamStatsSummary.draws === 1 ? "" : "s"}</small></article><article><span>AVG SCORED</span><strong>{teamStatsSummary.averageScored}</strong><small>per filtered match</small></article><article className={teamStatsRunDifference >= 0 ? "positive" : "negative"}><span>RUN DIFFERENCE</span><strong>{teamStatsRunDifference > 0 ? "+" : ""}{teamStatsRunDifference}</strong><small>{teamStatsSummary.averageConceded} conceded / game</small></article></div>
             <footer><div className="team-stats-form"><span>FILTERED FORM</span><div>{teamStatsForm.length ? teamStatsForm.map((result, index) => <b className={result.toLowerCase()} key={`${result}-${index}`}>{result}</b>) : <small>No games match these filters</small>}</div></div><div><button onClick={() => navigateTo("leaderboards")}>Open player rankings</button><button onClick={() => navigateTo("players")}>Player profiles</button></div></footer>
