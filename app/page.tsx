@@ -454,6 +454,7 @@ export default function Home() {
   const [scorecardCandidates, setScorecardCandidates] = useState<ScorecardCandidate[]>([]);
   const [working, setWorking] = useState<"season" | "match" | "filler" | "account" | "community" | "remove" | "">("");
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
   const [scorecardMatchId, setScorecardMatchId] = useState<number | null>(null);
   const [scorecardInningsNumber, setScorecardInningsNumber] = useState(1);
   const team = teams[0] ?? null;
@@ -487,7 +488,7 @@ export default function Home() {
       if (firstProfile) { setAccountName(firstProfile.displayName); setAccountEmail(firstProfile.email ?? ""); setAccountPhone(firstProfile.phone ?? ""); setAccountBio(firstProfile.bio ?? ""); setAccountRole(firstProfile.role ?? "All-rounder"); setAccountVenue(firstProfile.preferredVenue ?? ""); setAccountImage(firstProfile.imageUrl ?? null); }
       setSelectedSeasonId(initialSeason?.id ?? null);
       setScorecardSeasonId(initialSeason?.id ?? null);
-    });
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const seasonRosterPlayers = useMemo(() => [...(season?.players ?? team?.players ?? [])], [season, team]);
@@ -972,7 +973,7 @@ export default function Home() {
             </div>
 
             <section className="home-recent-card"><header><div><p className="overline">SEASON SCORECARDS</p><h2>Recent games</h2></div><button onClick={() => navigateTo("fixtures")}>Open match centre →</button></header>{seasonActivities.length ? <div className="home-result-list">{seasonActivities.slice(0, 5).map((match) => { const isHome = match.homeTeam.toLowerCase() === team.name.toLowerCase(); const teamScore = isHome ? match.homeScore : match.awayScore; const opponentScore = isHome ? match.awayScore : match.homeScore; const opponent = isHome ? match.awayTeam : match.homeTeam; const result = teamScore > opponentScore ? "W" : teamScore < opponentScore ? "L" : "D"; return <button key={match.id} onClick={() => openScorecard(match.id)}><span className={`home-result-badge ${result.toLowerCase()}`}>{result}</span><span><b>{opponent}</b><small>{match.playedAt} · {matchTypeLabel(match.matchType)}</small></span><strong>{teamScore}<i>–</i>{opponentScore}</strong><em>Fixture {match.fixtureId}</em><b>→</b></button>; })}</div> : <div className="home-panel-empty compact"><strong>No scorecards in this season.</strong><span>Add a completed result from Team Admin.</span></div>}</section>
-          </> : <section className="home-no-team"><span>◉</span><p className="overline">ACTIONHQ · DIE BRON</p><h1>The team data could not be loaded.</h1><p>This is a single-team portal. Open Team Admin to check the stored season and roster data.</p><button onClick={() => navigateTo("team")}>Open Team Admin →</button></section>}
+          </> : loading ? <section className="home-no-team"><span>◉</span><p className="overline">ACTIONHQ · DIE BRON</p><h1>Loading your team…</h1><p>Fetching Die Bron seasons, roster and scorecards.</p></section> : <section className="home-no-team"><span>◉</span><p className="overline">ACTIONHQ · DIE BRON</p><h1>The team data could not be loaded.</h1><p>This is a single-team portal. Open Team Admin to check the stored season and roster data.</p><button onClick={() => navigateTo("team")}>Open Team Admin →</button></section>}
         </>}
 
         {view === "scorecard" && scorecardMatch && <>
@@ -1033,7 +1034,7 @@ export default function Home() {
             <div className="team-stats-kpis"><article><span>GAMES</span><strong>{teamStatsSummary.games}</strong><small>matching scorecards</small></article><article className="positive"><span>RECORD</span><strong>{teamStatsSummary.wins}–{teamStatsSummary.losses}</strong><small>{teamStatsSummary.draws} draw{teamStatsSummary.draws === 1 ? "" : "s"}</small></article><article><span>AVG SCORED</span><strong>{teamStatsSummary.averageScored}</strong><small>per filtered match</small></article><article className={teamStatsRunDifference >= 0 ? "positive" : "negative"}><span>RUN DIFFERENCE</span><strong>{teamStatsRunDifference > 0 ? "+" : ""}{teamStatsRunDifference}</strong><small>{teamStatsSummary.averageConceded} conceded / game</small></article></div>
             <footer><div className="team-stats-form"><span>FILTERED FORM</span><div>{teamStatsForm.length ? teamStatsForm.map((result, index) => <b className={result.toLowerCase()} key={`${result}-${index}`}>{result}</b>) : <small>No games match these filters</small>}</div></div><div><button onClick={() => navigateTo("leaderboards")}>Open player rankings</button><button onClick={() => navigateTo("players")}>Player profiles</button></div></footer>
           </section>
-          {team ? <><section className="team-stats-guide"><article><span>01</span><div><strong>Scoring profile</strong><p>Run types, dot-ball avoidance and scoring consistency.</p></div></article><article><span>02</span><div><strong>Bowling pressure</strong><p>Wicket creation, discipline and risk patterns.</p></div></article><article><span>03</span><div><strong>Match behaviour</strong><p>Form, innings splits and how results are shaped.</p></div></article></section><TeamPerformanceCharts teamName={team.name} matches={teamStatsActivities} sortOrder={teamStatsSort} /></> : <section className="ranking-empty"><span>↗</span><h2>Team statistics are unavailable</h2><p>The Die Bron team record could not be loaded. Restore the team data to unlock its charts.</p><button onClick={() => navigateTo("team")}>Open Team Admin</button></section>}
+          {team ? <><section className="team-stats-guide"><article><span>01</span><div><strong>Scoring profile</strong><p>Run types, dot-ball avoidance and scoring consistency.</p></div></article><article><span>02</span><div><strong>Bowling pressure</strong><p>Wicket creation, discipline and risk patterns.</p></div></article><article><span>03</span><div><strong>Match behaviour</strong><p>Form, innings splits and how results are shaped.</p></div></article></section><TeamPerformanceCharts teamName={team.name} matches={teamStatsActivities} sortOrder={teamStatsSort} /></> : loading ? <section className="ranking-empty"><span>↗</span><h2>Loading team statistics…</h2><p>One moment while we load the Die Bron record.</p></section> : <section className="ranking-empty"><span>↗</span><h2>Team statistics are unavailable</h2><p>The Die Bron team record could not be loaded. Restore the team data to unlock its charts.</p><button onClick={() => navigateTo("team")}>Open Team Admin</button></section>}
         </>}
 
         {view === "team" && <>
@@ -1051,7 +1052,7 @@ export default function Home() {
             {scorecardImportFeedback && <div className={`scorecard-import-feedback ${scorecardImportFeedback.tone}`} role={scorecardImportFeedback.tone === "error" ? "alert" : "status"}><b>{scorecardImportFeedback.tone === "error" ? "Import failed" : "Import complete"}</b><span>{scorecardImportFeedback.message}</span></div>}
             <button disabled={working === "match"}>{working === "match" ? "Importing…" : `Import to ${scorecardImportSeason.name || `Season ${scorecardImportSeason.externalSeasonId}`}`}</button>
           </form>}
-          {!team && <section className="ranking-empty"><span>!</span><h2>Die Bron data is unavailable</h2><p>The portal is configured for one team. Restore the team record before managing seasons or importing scorecards.</p></section>}
+          {!team && !loading && <section className="ranking-empty"><span>!</span><h2>Die Bron data is unavailable</h2><p>The portal is configured for one team. Restore the team record before managing seasons or importing scorecards.</p></section>}
           {team && <>
             <section id="season-management" className="season-command-center">
               <div className="season-command-head"><div><p className="overline">SEASON WORKSPACE</p><h2>{season?.name || `Season ${season?.externalSeasonId ?? "not added"}`}</h2><p>{season ? `${season.leagueName || "League not named"} · Season ID ${season.externalSeasonId}. ` : ""}{season?.id === currentSeason?.id ? "New scorecards will be filed here automatically." : "This archived season is read-only until you make it current."}</p></div>{season && <span className={`current-season-badge${season.id === currentSeason?.id ? "" : " archived"}`}>{season.id === currentSeason?.id ? "CURRENT" : "ARCHIVED"}</span>}</div>
@@ -1165,7 +1166,7 @@ export default function Home() {
             </section>
 
             <section className="ranking-insights-bridge"><div><p className="overline">BEYOND THE LEADERBOARD</p><h2>How the team wins</h2><span>Rankings show who led. Team Stats explains dot-ball avoidance, resilience, run rotation, scoring consistency and wicket pressure.</span></div><button onClick={() => navigateTo("performance")}>Open Team Stats →</button></section>
-          </> : <section className="ranking-empty"><span>↗</span><h2>The board is ready for your roster</h2><p>Add the season roster in Team Admin. Player statistics will remain at zero until completed scorecards are imported.</p><button onClick={() => navigateTo("team")}>Open Team Admin</button></section>}
+          </> : loading ? <section className="ranking-empty"><span>♜</span><h2>Loading rankings…</h2></section> : <section className="ranking-empty"><span>↗</span><h2>The board is ready for your roster</h2><p>Add the season roster in Team Admin. Player statistics will remain at zero until completed scorecards are imported.</p><button onClick={() => navigateTo("team")}>Open Team Admin</button></section>}
         </>}
       </section>
 
