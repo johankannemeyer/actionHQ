@@ -200,7 +200,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json() as { action?: string; playerId?: number; displayName?: string; email?: string; phone?: string; bio?: string; role?: string; preferredVenue?: string; ownerPlayerId?: number; sourcePlayerId?: number };
+    const body = await request.json() as { action?: string; playerId?: number; displayName?: string; email?: string; phone?: string; bio?: string; role?: string; preferredVenue?: string; imageUrl?: string | null; ownerPlayerId?: number; sourcePlayerId?: number };
     const db = getDb();
     if (body.action === "update") {
       const playerId = Number(body.playerId);
@@ -213,7 +213,14 @@ export async function PATCH(request: Request) {
       if (!playerId || !displayName) return Response.json({ error: "Player name is required." }, { status: 400 });
       if (!["All-rounder", "Batter", "Bowler", "Wicketkeeper"].includes(role)) return Response.json({ error: "Choose a valid playing role." }, { status: 400 });
       const normalizedName = normalizePlayerName(displayName);
-      const [profile] = await db.update(playerProfiles).set({ displayName, normalizedName, email, phone, bio, role, preferredVenue }).where(eq(playerProfiles.id, playerId)).returning();
+      const updateValues: Partial<typeof playerProfiles.$inferInsert> = { displayName, normalizedName, email, phone, bio, role, preferredVenue };
+      if (body.imageUrl !== undefined) {
+        const img = body.imageUrl;
+        if (img === null || img === "") updateValues.imageUrl = null;
+        else if (typeof img === "string" && img.startsWith("data:image/") && img.length <= 1_500_000) updateValues.imageUrl = img;
+        else return Response.json({ error: "Image must be a valid image file under about 1MB." }, { status: 400 });
+      }
+      const [profile] = await db.update(playerProfiles).set(updateValues).where(eq(playerProfiles.id, playerId)).returning();
       if (!profile) return Response.json({ error: "Player profile not found." }, { status: 404 });
       return Response.json({ player: await playerBundle(profile) });
     }

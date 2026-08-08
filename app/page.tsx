@@ -5,7 +5,7 @@ import { CSSProperties, FormEvent, useEffect, useMemo, useState } from "react";
 type Player = { id: number; playerProfileId?: number; linkedOwnerId?: number | null; linkedAppearances?: number; name: string; active?: boolean; registeredAt?: string | null; games: number; runs: number; runsAverage: number; strikeRate: number; wickets: number; contribution: number; contributionAverage: number };
 type Fixture = { id: number; round: string; matchDate: string; matchTime: string; court: string; opponent: string; result: string };
 type Season = { id: number; name: string; leagueName: string; externalSeasonId: string; externalDivisionId: string; sourceUrl: string; isCurrent: boolean; position: number | null; wins: number; losses: number; draws: number; averageScored: number; averageConceded: number; lastSyncedAt: string; players: Player[]; matches: Fixture[] };
-type Team = { id: number; name: string; sourceUrl: string; position: number | null; wins: number; losses: number; draws: number; averageScored: number; averageConceded: number; lastSyncedAt: string; players: Player[]; matches: Fixture[]; seasons: Season[] };
+type Team = { id: number; name: string; sourceUrl: string; position: number | null; wins: number; losses: number; draws: number; averageScored: number; averageConceded: number; imageUrl: string | null; lastSyncedAt: string; players: Player[]; matches: Fixture[]; seasons: Season[] };
 type Performance = { id: number; teamName: string; playerName: string; runs: number; strikeRate: number; oversBowled: number; runsConceded: number; wickets: number; economy: number; contribution: number };
 type MatchDelivery = { id: number; ballNumber: number; batterName: string; outcome: string; isExtra: boolean };
 type MatchOver = { id: number; overNumber: number; bowlerName: string; wickets: number; runs: number; batterOneTotal: number; batterTwoTotal: number; deliveries: MatchDelivery[] };
@@ -16,7 +16,7 @@ type MatchActivity = { id: number; teamSeasonId: number | null; fixtureId: strin
 type PlayerMatch = { claimId: number; teamSeasonId: number | null; fixtureId: string; playedAt: string; homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; scoresheetUrl: string; teamName: string; playerName: string; runs: number; strikeRate: number; wickets: number; contribution: number };
 type PlayerSeason = { id: number; teamSeasonId: number; seasonId: string; divisionId: string; teamName: string; sourceName: string; active: boolean; games: number; runs: number; strikeRate: number; wickets: number; contribution: number; contributionAverage: number; lastSyncedAt: string };
 type TeamProfileCandidate = { sourceProfileId: number; sourceName: string; teams: Array<{ teamName: string; seasonId: string; divisionId: string; games: number; runs: number; wickets: number }> };
-type PlayerProfile = { id: number; displayName: string; email: string | null; phone: string | null; bio: string; role: string; preferredVenue: string; registeredAt: string | null; linkedSourceIds: number[]; linkCandidates: TeamProfileCandidate[]; allTime: { games: number; runs: number; wickets: number; contribution: number; strikeRate: number; seasons: number; linkedMatches: number; fillerMatches: number }; seasons: PlayerSeason[]; matches: PlayerMatch[] };
+type PlayerProfile = { id: number; displayName: string; email: string | null; phone: string | null; bio: string; role: string; preferredVenue: string; registeredAt: string | null; imageUrl: string | null; linkedSourceIds: number[]; linkCandidates: TeamProfileCandidate[]; allTime: { games: number; runs: number; wickets: number; contribution: number; strikeRate: number; seasons: number; linkedMatches: number; fillerMatches: number }; seasons: PlayerSeason[]; matches: PlayerMatch[] };
 type ScorecardCandidate = { name: string; teamName: string };
 type Follow = { id: number; followerProfileId: number; followingProfileId: number; createdAt: string };
 type View = "feed" | "performance" | "team" | "players" | "leaderboards" | "fixtures" | "search" | "player" | "account" | "privacy" | "scorecard";
@@ -64,9 +64,34 @@ function rankingTableDisplay(player: Player, sort: RankingTableSort) {
   return `${rankingMetricDisplay(player, sort)} ${metric?.short ?? ""}`.trim();
 }
 
-function Initials({ name, large = false }: { name: string; large?: boolean }) {
+function Initials({ name, large = false, src = null }: { name: string; large?: boolean; src?: string | null }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("");
-  return <span className={`avatar${large ? " avatar-large" : ""}`}>{initials || "AH"}</span>;
+  const className = `avatar${large ? " avatar-large" : ""}${src ? " has-photo" : ""}`;
+  return <span className={className}>{src ? <img src={src} alt={name} /> : (initials || "AH")}</span>;
+}
+
+async function readImageThumbnail(file: File, max = 256): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read the image."));
+    reader.readAsDataURL(file);
+  });
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new window.Image();
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error("Could not decode the image."));
+    element.src = dataUrl;
+  });
+  const scale = Math.min(1, max / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 function matchTypeLabel(matchType?: MatchType) {
@@ -425,6 +450,7 @@ export default function Home() {
   const [accountBio, setAccountBio] = useState("");
   const [accountRole, setAccountRole] = useState("All-rounder");
   const [accountVenue, setAccountVenue] = useState("");
+  const [accountImage, setAccountImage] = useState<string | null>(null);
   const [scorecardCandidates, setScorecardCandidates] = useState<ScorecardCandidate[]>([]);
   const [working, setWorking] = useState<"season" | "match" | "filler" | "account" | "community" | "remove" | "">("");
   const [notice, setNotice] = useState("");
@@ -458,7 +484,7 @@ export default function Home() {
       const rosterProfileIds = new Set<number>(currentRoster.map((item: Player) => item.linkedOwnerId ?? item.playerProfileId).filter(Boolean));
       const firstProfile = playerData.players?.find((item: PlayerProfile) => rosterProfileIds.has(item.id)) as PlayerProfile | undefined;
       setSelectedProfileId(firstProfile?.id ?? null);
-      if (firstProfile) { setAccountName(firstProfile.displayName); setAccountEmail(firstProfile.email ?? ""); setAccountPhone(firstProfile.phone ?? ""); setAccountBio(firstProfile.bio ?? ""); setAccountRole(firstProfile.role ?? "All-rounder"); setAccountVenue(firstProfile.preferredVenue ?? ""); }
+      if (firstProfile) { setAccountName(firstProfile.displayName); setAccountEmail(firstProfile.email ?? ""); setAccountPhone(firstProfile.phone ?? ""); setAccountBio(firstProfile.bio ?? ""); setAccountRole(firstProfile.role ?? "All-rounder"); setAccountVenue(firstProfile.preferredVenue ?? ""); setAccountImage(firstProfile.imageUrl ?? null); }
       setSelectedSeasonId(initialSeason?.id ?? null);
       setScorecardSeasonId(initialSeason?.id ?? null);
     });
@@ -859,10 +885,20 @@ export default function Home() {
   async function saveAccount(event: FormEvent) {
     event.preventDefault(); if (!profile) return;
     setWorking("account"); setNotice("");
-    const response = await fetch("/api/players", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", playerId: profile.id, displayName: accountName, email: accountEmail, phone: accountPhone, bio: accountBio, role: accountRole, preferredVenue: accountVenue }) });
+    const response = await fetch("/api/players", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", playerId: profile.id, displayName: accountName, email: accountEmail, phone: accountPhone, bio: accountBio, role: accountRole, preferredVenue: accountVenue, imageUrl: accountImage }) });
     const data = await response.json(); setWorking("");
     if (!response.ok) return setNotice(data.error ?? "Could not save your profile.");
     setProfiles((current) => current.map((item) => item.id === data.player.id ? data.player : item)); setNotice("Profile settings saved.");
+  }
+
+  async function saveTeamImage(imageUrl: string | null) {
+    if (!team) return;
+    setWorking("account"); setNotice("");
+    const response = await fetch("/api/teams", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setTeamImage", teamId: team.id, imageUrl }) });
+    const data = await response.json(); setWorking("");
+    if (!response.ok) return setNotice(data.error ?? "Could not update the team image.");
+    setTeams((current) => current.map((item) => item.id === data.team.id ? data.team : item));
+    setNotice(imageUrl ? "Team image updated." : "Team image removed.");
   }
 
   function openPublicPlayer(id: number) { setViewedProfileId(id); setPlayerSeasonFilter("all"); setView("player"); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -882,14 +918,14 @@ export default function Home() {
   ];
 
   return <main className="app-root">
-    <header className="app-header"><button className="wordmark" onClick={() => navigateTo("feed")}><i />ACTION<span>HQ</span><small>BETA</small></button><form className="header-search" onSubmit={(event) => { event.preventDefault(); navigateTo("search"); }}><span>⌕</span><input aria-label="Search players or fixtures" value={searchQuery} onFocus={() => navigateTo("search")} onChange={(event) => { setSearchQuery(event.target.value); setView("search"); }} placeholder="Search Die Bron players or fixture IDs" /></form><button className="header-search-compact" aria-label="Open search" onClick={() => navigateTo("search")}>⌕ <span>Search</span></button><button className="sync-quick" onClick={() => openTeamSection("scorecard-imports")}>＋ Update scores</button><button className="team-button" aria-label="Open Team Admin" onClick={() => navigateTo("team")}><Initials name={team?.name ?? "Die Bron"} /><span className="team-button-copy"><strong>{team?.name ?? "Die Bron"}</strong><small>Single-team portal</small></span><b>→</b></button></header>
+    <header className="app-header"><button className="wordmark" onClick={() => navigateTo("feed")}><i />ACTION<span>HQ</span><small>BETA</small></button><form className="header-search" onSubmit={(event) => { event.preventDefault(); navigateTo("search"); }}><span>⌕</span><input aria-label="Search players or fixtures" value={searchQuery} onFocus={() => navigateTo("search")} onChange={(event) => { setSearchQuery(event.target.value); setView("search"); }} placeholder="Search Die Bron players or fixture IDs" /></form><button className="header-search-compact" aria-label="Open search" onClick={() => navigateTo("search")}>⌕ <span>Search</span></button><button className="sync-quick" onClick={() => openTeamSection("scorecard-imports")}>＋ Update scores</button><button className="team-button" aria-label="Open Team Admin" onClick={() => navigateTo("team")}><Initials name={team?.name ?? "Die Bron"} src={team?.imageUrl ?? null} /><span className="team-button-copy"><strong>{team?.name ?? "Die Bron"}</strong><small>Single-team portal</small></span><b>→</b></button></header>
 
     <div className="app-layout">
       <aside className="sidebar">
         <nav aria-label="Main navigation">{navItems.map((item) => <button key={item.id} className={`${view === item.id ? "active" : ""}${item.id === "team" ? " admin-nav" : ""}`} onClick={() => navigateTo(item.id)}><span>{item.icon}</span>{item.label}</button>)}</nav>
         <div className="side-divider" />
         <p className="side-label side-label-count"><span>TEAM PLAYER PROFILES</span><b>{teamDirectory.length}</b></p>
-        <div className="club-stack page-stack">{teamDirectory.map((item) => <button key={`player-${item.id}`} className={`club-link ${item.id === viewedProfileId && view === "player" ? "selected" : ""}`} onClick={() => openPublicPlayer(item.id)}><Initials name={item.displayName} /><span><b>{item.displayName}</b><small>Player profile · {item.allTime.linkedMatches} scorecards</small></span></button>)}</div>
+        <div className="club-stack page-stack">{teamDirectory.map((item) => <button key={`player-${item.id}`} className={`club-link ${item.id === viewedProfileId && view === "player" ? "selected" : ""}`} onClick={() => openPublicPlayer(item.id)}><Initials name={item.displayName} src={item.imageUrl} /><span><b>{item.displayName}</b><small>Player profile · {item.allTime.linkedMatches} scorecards</small></span></button>)}</div>
         {!teamDirectory.length && <button className="club-link empty" onClick={() => navigateTo("team")}>Open roster management</button>}
         <button className="add-club" onClick={() => navigateTo("players")}>View all {teamDirectory.length || "team"} player profiles →</button>
         <div className="sidebar-promo"><span>TEAM ANALYSIS</span><strong>See how the team scores, defends and wins.</strong><button onClick={() => navigateTo("performance")}>Open team stats</button></div>
@@ -903,7 +939,7 @@ export default function Home() {
           {team ? <>
             <section className="home-team-hero">
               <div className="home-hero-rings" />
-              <header><div className="home-team-identity"><Initials name={team.name} large /><span><small>YOUR TEAM HQ</small><strong>{team.name}</strong></span></div><div className="home-season-chip"><span>CURRENT VIEW</span><b>{season?.name ?? `Season ${season?.externalSeasonId ?? "current"}`}</b><small>{season?.leagueName ?? "Action Cricket"}</small></div></header>
+              <header><div className="home-team-identity"><Initials name={team.name} large src={team.imageUrl} /><span><small>YOUR TEAM HQ</small><strong>{team.name}</strong></span></div><div className="home-season-chip"><span>CURRENT VIEW</span><b>{season?.name ?? `Season ${season?.externalSeasonId ?? "current"}`}</b><small>{season?.leagueName ?? "Action Cricket"}</small></div></header>
               <div className="home-hero-copy"><p>THE COMPLETE TEAM PICTURE</p><h1>One home for every score, player and season.</h1><span>Follow the current campaign, open any scorecard and move straight into the performance that matters.</span></div>
               <div className="home-record-grid"><article><span>GAMES</span><strong>{seasonTeamSummary.games}</strong><small>scorecards</small></article><article className="positive"><span>WINS</span><strong>{seasonTeamSummary.wins}</strong><small>{seasonTeamSummary.games ? Math.round(seasonTeamSummary.wins / seasonTeamSummary.games * 100) : 0}% win rate</small></article><article><span>LOSSES</span><strong>{seasonTeamSummary.losses}</strong><small>{seasonTeamSummary.draws} draws</small></article><article className={homeRunDifference >= 0 ? "positive" : "negative"}><span>RUN DIFFERENCE</span><strong>{homeRunDifference > 0 ? "+" : ""}{homeRunDifference}</strong><small>{seasonTeamSummary.averageScored} scored / game</small></article></div>
               <footer><div className="home-form-strip"><span>RECENT FORM</span><div>{homeForm.length ? homeForm.map((result, index) => <b className={result.toLowerCase()} key={`${result}-${index}`}>{result}</b>) : <small>No completed games yet</small>}</div></div><div className="home-hero-actions"><button onClick={() => openTeamSection("scorecard-imports")}>＋ Update scores</button><button onClick={() => navigateTo("leaderboards")}>Explore team intelligence →</button></div></footer>
@@ -981,7 +1017,7 @@ export default function Home() {
           </section>
           <section className="team-stats-hero">
             <span className="team-stats-rings" aria-hidden="true" />
-            <header><div className="team-stats-team"><Initials name={team?.name ?? "ActionHQ"} large /><span><small>TEAM STATISTICS</small><strong>{team?.name ?? "Your team"}</strong><em>{season?.leagueName ?? "Action Cricket"}</em></span></div><div className="season-current-pill"><span>VIEWING</span><strong>{season?.name || "Current season"}</strong></div></header>
+            <header><div className="team-stats-team"><Initials name={team?.name ?? "ActionHQ"} large src={team?.imageUrl ?? null} /><span><small>TEAM STATISTICS</small><strong>{team?.name ?? "Your team"}</strong><em>{season?.leagueName ?? "Action Cricket"}</em></span></div><div className="season-current-pill"><span>VIEWING</span><strong>{season?.name || "Current season"}</strong></div></header>
             <div className="team-stats-copy"><p>THE TEAM PERFORMANCE PICTURE</p><h1>How {team?.name ?? "the team"} performs.</h1><span>See the scoring habits, bowling pressure and match patterns created by every completed scorecard in this season.</span></div>
             <div className="team-stats-kpis"><article><span>GAMES</span><strong>{teamStatsSummary.games}</strong><small>matching scorecards</small></article><article className="positive"><span>RECORD</span><strong>{teamStatsSummary.wins}–{teamStatsSummary.losses}</strong><small>{teamStatsSummary.draws} draw{teamStatsSummary.draws === 1 ? "" : "s"}</small></article><article><span>AVG SCORED</span><strong>{teamStatsSummary.averageScored}</strong><small>per filtered match</small></article><article className={teamStatsRunDifference >= 0 ? "positive" : "negative"}><span>RUN DIFFERENCE</span><strong>{teamStatsRunDifference > 0 ? "+" : ""}{teamStatsRunDifference}</strong><small>{teamStatsSummary.averageConceded} conceded / game</small></article></div>
             <footer><div className="team-stats-form"><span>FILTERED FORM</span><div>{teamStatsForm.length ? teamStatsForm.map((result, index) => <b className={result.toLowerCase()} key={`${result}-${index}`}>{result}</b>) : <small>No games match these filters</small>}</div></div><div><button onClick={() => navigateTo("leaderboards")}>Open player rankings</button><button onClick={() => navigateTo("players")}>Player profiles</button></div></footer>
@@ -991,6 +1027,7 @@ export default function Home() {
 
         {view === "team" && <>
           <div className="page-intro"><div><p className="overline">TEAM ADMINISTRATION</p><h1>{team?.name ?? "Die Bron"}</h1><p>Import completed games first, then manage the season, official roster and stored results for this team.</p></div></div>
+          {team && <section className="team-image-card"><Initials name={team.name} large src={team.imageUrl} /><div><strong>{team.name}</strong><small>Team profile image</small></div><div className="avatar-upload"><label className="avatar-upload-button">{team.imageUrl ? "Change image" : "Upload image"}<input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; try { await saveTeamImage(await readImageThumbnail(file)); } catch { setNotice("Could not read that image."); } }} /></label>{team.imageUrl && <button type="button" className="avatar-remove" disabled={working === "account"} onClick={() => saveTeamImage(null)}>Remove</button>}</div></section>}
           {team && scorecardImportSeason && <form id="scorecard-imports" className="quick-sync-card team-admin-import team-admin-import-top file-upload-card" onSubmit={uploadMatches}>
             <div className="sync-symbol">⇧</div>
             <div><p className="overline">QUICK ACTION · UPDATE SCORES</p><strong>Import completed scorecards</strong><span>Choose the destination season first, then upload saved HTML files or paste one Action Sport scorecard URL.</span></div>
@@ -1035,7 +1072,7 @@ export default function Home() {
           <section className="season-context-bar player-directory-context"><div><p className="overline">PLAYER STATS VIEW</p><h2>Choose all-time or one season</h2><span>The player list and every card update to the selected period.</span></div><div className="season-context-controls"><label><span>Season</span><select aria-label="Choose player directory season" value={playerDirectorySeasonFilter} onChange={(event) => { const value = event.target.value; setPlayerDirectorySeasonFilter(value); if (value !== "all") setSelectedSeasonId(Number(value)); }}><option value="all">All-time career</option>{team?.seasons.map((item) => <option key={item.id} value={String(item.id)}>{item.name || `Season ${item.externalSeasonId}`}</option>)}</select></label><label><span>Sort players</span><select aria-label="Sort player directory" value={playerDirectorySort} onChange={(event) => setPlayerDirectorySort(event.target.value as PlayerDirectorySort)}><option value="name">Name A–Z</option><option value="games">Most games</option><option value="runs">Most runs</option><option value="wickets">Most wickets</option><option value="impact">Highest impact</option></select></label></div><strong>{playerDirectoryRows.length}<small>players shown</small></strong></section>
           <section className="directory-summary"><div><span>TEAM</span><strong>{team?.name ?? "Die Bron"}</strong></div><div><span>VIEWING</span><strong>{playerDirectorySeasonFilter === "all" ? "All-time career" : seasonNames[Number(playerDirectorySeasonFilter)] ?? "Selected season"}</strong></div><div><span>WITH MATCH HISTORY</span><strong>{playerDirectoryRows.filter((item) => directoryStatsFor(item).scorecards > 0).length}/{playerDirectoryRows.length}</strong></div><button onClick={() => navigateTo("team")}>Manage team page</button></section>
           {!!playerDirectoryRows.length && <section className="profile-link-status"><span>✓</span><div><strong>{playerDirectoryRows.length} player profile{playerDirectoryRows.length === 1 ? " is" : "s are"} available in this view</strong><p>Every roster player has the same permanent profile, with scorecard history connected automatically.</p></div></section>}
-          <div className="player-directory-grid">{playerDirectoryRows.map((item) => { const stats = directoryStatsFor(item); const viewName = playerDirectorySeasonFilter === "all" ? "ALL TIME" : (seasonNames[Number(playerDirectorySeasonFilter)] ?? "SELECTED SEASON").toUpperCase(); return <button className="player-directory-card" key={item.id} onClick={() => openPublicPlayer(item.id)}><div className="directory-card-head"><Initials name={item.displayName} large /><span><em>PLAYER PROFILE · {viewName}</em><strong>{item.displayName}</strong><small>{item.seasons[0]?.teamName ?? team?.name ?? "Action Cricket"} · permanent career profile</small></span></div><div className="directory-stats"><span><b>{stats.games}</b><small>GAMES</small></span><span><b>{stats.runs}</b><small>RUNS</small></span><span><b>{stats.wickets}</b><small>WKTS</small></span><span><b>{stats.scorecards}</b><small>SCORECARDS</small></span></div><div className="directory-card-foot"><span>{stats.scorecards ? `${viewName.toLowerCase()} match history connected` : "Waiting for first scorecard in this view"}</span><b>View full profile →</b></div></button>; })}</div>
+          <div className="player-directory-grid">{playerDirectoryRows.map((item) => { const stats = directoryStatsFor(item); const viewName = playerDirectorySeasonFilter === "all" ? "ALL TIME" : (seasonNames[Number(playerDirectorySeasonFilter)] ?? "SELECTED SEASON").toUpperCase(); return <button className="player-directory-card" key={item.id} onClick={() => openPublicPlayer(item.id)}><div className="directory-card-head"><Initials name={item.displayName} large src={item.imageUrl} /><span><em>PLAYER PROFILE · {viewName}</em><strong>{item.displayName}</strong><small>{item.seasons[0]?.teamName ?? team?.name ?? "Action Cricket"} · permanent career profile</small></span></div><div className="directory-stats"><span><b>{stats.games}</b><small>GAMES</small></span><span><b>{stats.runs}</b><small>RUNS</small></span><span><b>{stats.wickets}</b><small>WKTS</small></span><span><b>{stats.scorecards}</b><small>SCORECARDS</small></span></div><div className="directory-card-foot"><span>{stats.scorecards ? `${viewName.toLowerCase()} match history connected` : "Waiting for first scorecard in this view"}</span><b>View full profile →</b></div></button>; })}</div>
         </>}
 
         {view === "fixtures" && <>
@@ -1047,7 +1084,7 @@ export default function Home() {
           <div className="page-intro"><div><p className="overline">SEARCH ACTIONHQ</p><h1>Find your cricket circle.</h1><p>Search every player page, connected team and uploaded scorecard.</p></div></div>
           <div className="mobile-search"><span>⌕</span><input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Type a player, team or fixture ID" /></div>
           {!searchQuery.trim() ? <div className="search-empty"><span>⌕</span><h2>Start with a name or Fixture ID</h2><p>Your results will appear here as you type.</p></div> : <div className="search-sections">
-            <section><div className="section-title"><div><p className="overline">PLAYER PAGES</p><h2>{searchResults.players.length} found</h2></div></div>{searchResults.players.map((item) => <div className="search-result" key={item.id}><Initials name={item.displayName} /><span><b>{item.displayName}</b><small>{item.allTime.games} games · {item.allTime.runs} runs · {item.allTime.linkedMatches} scorecards</small></span><button onClick={() => openPublicPlayer(item.id)}>View profile</button>{item.registeredAt && profile?.id !== item.id && <button className={followingIds.has(item.id) ? "following" : ""} onClick={() => toggleFollow(item.id)}>{followingIds.has(item.id) ? "Following" : "Follow"}</button>}</div>)}</section>
+            <section><div className="section-title"><div><p className="overline">PLAYER PAGES</p><h2>{searchResults.players.length} found</h2></div></div>{searchResults.players.map((item) => <div className="search-result" key={item.id}><Initials name={item.displayName} src={item.imageUrl} /><span><b>{item.displayName}</b><small>{item.allTime.games} games · {item.allTime.runs} runs · {item.allTime.linkedMatches} scorecards</small></span><button onClick={() => openPublicPlayer(item.id)}>View profile</button>{item.registeredAt && profile?.id !== item.id && <button className={followingIds.has(item.id) ? "following" : ""} onClick={() => toggleFollow(item.id)}>{followingIds.has(item.id) ? "Following" : "Follow"}</button>}</div>)}</section>
             <section><div className="section-title"><div><p className="overline">TEAM</p><h2>{searchResults.teams.length} found</h2></div></div>{searchResults.teams.map((item) => <button className="search-result team-result" key={item.id} onClick={() => navigateTo("team")}><Initials name={item.name} /><span><b>{item.name}</b><small>{item.seasons.length} stored seasons · Last synced {new Date(item.lastSyncedAt).toLocaleDateString("en-ZA")}</small></span><em>Open Team Admin →</em></button>)}</section>
             <section><div className="section-title"><div><p className="overline">MATCHES</p><h2>{searchResults.matches.length} found</h2></div></div>{searchResults.matches.map((item) => <button className="search-result team-result" key={item.id} onClick={() => openScorecard(item.id)}><span className="fixture-icon">#{item.fixtureId}</span><span><b>{item.homeTeam} {item.homeScore}–{item.awayScore} {item.awayTeam}</b><small>{matchTypeLabel(item.matchType)} · {item.playedAt} · {item.performances.length} player performances</small></span><em>View scorecard →</em></button>)}</section>
           </div>}
@@ -1065,7 +1102,7 @@ export default function Home() {
         {view === "account" && <>
           <button className="back-link" onClick={() => profile ? openPublicPlayer(profile.id) : navigateTo("players")}>← Back to player profile</button>
           <div className="page-intro"><div><p className="overline">PROFILE SETTINGS</p><h1>{profile ? "Update player details." : "Team profile settings"}</h1><p>Contact details stay private. Cricket statistics continue to come from the team roster and uploaded scorecards.</p></div></div>
-          {!profile ? <button className="primary-action" onClick={() => navigateTo("players")}>Open team player profiles</button> : <form className="account-form" onSubmit={saveAccount}><div className="account-avatar"><Initials name={accountName || profile.displayName} large /><span><b>{profile.displayName}</b><small>Player record #{profile.id}</small></span></div><div className="form-grid"><label>Display name<input required value={accountName} onChange={(event) => setAccountName(event.target.value)} /></label><label>Email<input type="email" value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} /></label><label>Phone<input value={accountPhone} onChange={(event) => setAccountPhone(event.target.value)} placeholder="+27" /></label><label>Playing role<select value={accountRole} onChange={(event) => setAccountRole(event.target.value)}><option>All-rounder</option><option>Batter</option><option>Bowler</option><option>Wicketkeeper</option></select></label><label className="wide">Preferred venue<input value={accountVenue} onChange={(event) => setAccountVenue(event.target.value)} /></label><label className="wide">Bio<textarea maxLength={280} value={accountBio} onChange={(event) => setAccountBio(event.target.value)} placeholder="Tell teammates about your indoor cricket journey." /></label></div><button disabled={working === "account"}>{working === "account" ? "Saving…" : "Save profile"}</button></form>}
+          {!profile ? <button className="primary-action" onClick={() => navigateTo("players")}>Open team player profiles</button> : <form className="account-form" onSubmit={saveAccount}><div className="account-avatar"><Initials name={accountName || profile.displayName} large src={accountImage} /><span><b>{profile.displayName}</b><small>Player record #{profile.id}</small></span><div className="avatar-upload"><label className="avatar-upload-button">{accountImage ? "Change photo" : "Upload photo"}<input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; try { setAccountImage(await readImageThumbnail(file)); setNotice("Photo ready — press Save profile to keep it."); } catch { setNotice("Could not read that image."); } }} /></label>{accountImage && <button type="button" className="avatar-remove" onClick={() => setAccountImage(null)}>Remove</button>}</div></div><div className="form-grid"><label>Display name<input required value={accountName} onChange={(event) => setAccountName(event.target.value)} /></label><label>Email<input type="email" value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} /></label><label>Phone<input value={accountPhone} onChange={(event) => setAccountPhone(event.target.value)} placeholder="+27" /></label><label>Playing role<select value={accountRole} onChange={(event) => setAccountRole(event.target.value)}><option>All-rounder</option><option>Batter</option><option>Bowler</option><option>Wicketkeeper</option></select></label><label className="wide">Preferred venue<input value={accountVenue} onChange={(event) => setAccountVenue(event.target.value)} /></label><label className="wide">Bio<textarea maxLength={280} value={accountBio} onChange={(event) => setAccountBio(event.target.value)} placeholder="Tell teammates about your indoor cricket journey." /></label></div><button disabled={working === "account"}>{working === "account" ? "Saving…" : "Save profile"}</button></form>}
           {profile && <section className="account-status"><div><span>PLAYER RECORD</span><strong>Statistics stay connected</strong><p>Imported team records stay untouched while profile details can be updated safely.</p></div><div><span>DATA STATUS</span><strong>Permanent history active</strong><p>{profile.allTime.seasons} seasons and {profile.allTime.linkedMatches} scorecards connected, including {profile.allTime.fillerMatches} filler matches.</p></div></section>}
         </>}
 

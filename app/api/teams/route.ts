@@ -264,8 +264,23 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json() as { action?: string; teamId?: number; seasonId?: number; seasonPlayerId?: number; active?: boolean; seasonName?: string; leagueName?: string; externalSeasonId?: string };
+    const body = await request.json() as { action?: string; teamId?: number; seasonId?: number; seasonPlayerId?: number; active?: boolean; seasonName?: string; leagueName?: string; externalSeasonId?: string; imageUrl?: string | null };
     const teamId = Number(body.teamId);
+    if (body.action === "setTeamImage") {
+      if (!teamId) return Response.json({ error: "Team is required." }, { status: 400 });
+      const db = getDb();
+      const [team] = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1);
+      if (!team) return Response.json({ error: "Team not found." }, { status: 404 });
+      if (normalizePlayerName(team.name) !== "die bron") return Response.json({ error: "Only the Die Bron team can be managed in this portal." }, { status: 403 });
+      const img = body.imageUrl;
+      let imageUrl: string | null;
+      if (img === null || img === undefined || img === "") imageUrl = null;
+      else if (typeof img === "string" && img.startsWith("data:image/") && img.length <= 1_500_000) imageUrl = img;
+      else return Response.json({ error: "Image must be a valid image file under about 1MB." }, { status: 400 });
+      await db.update(teams).set({ imageUrl }).where(eq(teams.id, teamId));
+      const [updated] = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1);
+      return Response.json({ team: await teamBundle(updated) });
+    }
     const seasonId = Number(body.seasonId);
     if (!teamId || !seasonId) return Response.json({ error: "Team and season are required." }, { status: 400 });
     const db = getDb();

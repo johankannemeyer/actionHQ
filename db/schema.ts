@@ -45,6 +45,7 @@ export const teams = pgTable("teams", {
   draws: integer("draws").notNull().default(0),
   averageScored: doublePrecision("average_scored").notNull().default(0),
   averageConceded: doublePrecision("average_conceded").notNull().default(0),
+  imageUrl: text("image_url"),
   lastSyncedAt: text("last_synced_at").notNull().$defaultFn(nowIso),
 }, (table) => [uniqueIndex("teams_source_url_unique").on(table.sourceUrl)]);
 
@@ -126,6 +127,7 @@ export const playerProfiles = pgTable("player_profiles", {
   role: text("role").notNull().default("All-rounder"),
   preferredVenue: text("preferred_venue").notNull().default(""),
   registeredAt: text("registered_at"),
+  imageUrl: text("image_url"),
   createdAt: text("created_at").notNull().$defaultFn(nowIso),
 }, (table) => [uniqueIndex("player_profiles_email_unique").on(table.email)]);
 
