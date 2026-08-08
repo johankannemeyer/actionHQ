@@ -411,3 +411,68 @@ img,video,canvas,svg{max-width:100%}
   .ranking-table-card td:nth-child(2).active{background:#f4f8df}
   .ranking-table-toolbar{grid-template-columns:1fr;gap:10px}
 }
+
+/* ===== Item 1: FIFA-style player card (portrait + fingerprint integrated into hero) ===== */
+.fifa-card{grid-template-columns:170px minmax(0,1fr) 220px!important;gap:26px}
+.smart-athlete-portrait{position:relative;width:170px;height:170px;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#3a2c26,#1a1210);box-shadow:0 14px 32px rgba(0,0,0,.35);display:grid;place-items:center;flex:0 0 auto}
+.smart-athlete-portrait img{width:100%;height:100%;object-fit:cover;display:block}
+.smart-athlete-portrait-fallback{font-size:52px;font-weight:900;color:#fff;letter-spacing:-1px}
+.smart-athlete-jersey{position:absolute;right:8px;bottom:8px;min-width:30px;height:30px;padding:0 7px;border-radius:9px;background:var(--smart-orange);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.3)}
+.smart-athlete-fingerprint{display:grid;justify-items:center;align-content:center;gap:6px}
+.smart-athlete-fingerprint .fingerprint-rings{width:148px;height:148px;margin:0}
+.smart-athlete-fingerprint .fingerprint-rings>i{width:148px;height:148px}
+.smart-athlete-fingerprint .fingerprint-rings>i>i{width:110px;height:110px}
+.smart-athlete-fingerprint .fingerprint-rings>i>i>i{width:76px;height:76px}
+.smart-athlete-fingerprint .fingerprint-rings strong{font-size:21px}
+.smart-athlete-fingerprint .fingerprint-legend{grid-template-columns:1fr;gap:5px;width:100%;margin-top:2px}
+.smart-athlete-fingerprint .fingerprint-legend span{display:flex;align-items:center;gap:6px;font-size:9px;color:#cfc4bd;text-align:left}
+.smart-athlete-fingerprint .fingerprint-legend b{margin-left:auto;color:#fff}
+.smart-athlete-fingerprint .fingerprint-legend span:nth-child(1) i{background:#ff4d0a}
+.smart-athlete-fingerprint .fingerprint-legend span:nth-child(2) i{background:#d9ef45}
+.smart-athlete-fingerprint .fingerprint-legend span:nth-child(3) i{background:#fff}
+.smart-athlete-fingerprint .fingerprint-legend i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+@media(max-width:1120px){
+  .fifa-card{grid-template-columns:150px minmax(0,1fr)!important}
+  .smart-athlete-fingerprint{grid-column:1/-1;display:flex;flex-direction:row;justify-content:center;align-items:center;gap:22px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px}
+  .smart-athlete-fingerprint .fingerprint-legend{width:auto}
+}
+@media(max-width:760px){
+  .fifa-card{grid-template-columns:1fr!important;text-align:center}
+  .smart-athlete-portrait{width:118px;height:118px;border-radius:16px;margin:0 auto}
+  .smart-athlete-portrait-fallback{font-size:36px}
+  .smart-athlete-id{text-align:center}
+  .smart-athlete-id:before{margin-left:auto;margin-right:auto}
+  .smart-athlete-id em{margin:0 auto}
+  .hero-stat-grid{width:100%}
+  .smart-athlete-fingerprint{flex-direction:column;border-top:0;margin-top:10px;padding-top:0}
+  .smart-athlete-fingerprint .fingerprint-legend{width:100%;max-width:220px}
+}
+
+/* ===== Item 5: Latest Result card - balanced horizontal baseline on mobile ===== */
+@media(max-width:760px){
+  .home-result-score{grid-template-columns:1fr;gap:12px}
+  .home-result-score>span,.home-result-score>span:last-child{display:flex!important;grid-template-columns:none;align-items:center;gap:8px}
+  .home-result-score>span:last-child{justify-content:flex-end}
+  .home-result-score>span strong,.home-result-score>span:last-child>strong{grid-column:auto;grid-row:auto;text-align:inherit}
+  .home-result-score>span b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
+/* ===== Item 6: Team HQ header - two-column on mobile too ===== */
+@media(max-width:760px){
+  .home-team-hero>header{flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:10px}
+  .home-season-chip{width:auto!important;border-left:1px solid #35505c!important;border-top:0!important;padding:0 0 0 12px!important;min-width:0;text-align:right}
+  .home-team-identity{min-width:0}
+  .home-team-identity strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;display:block}
+  .home-season-chip b{white-space:nowrap}
+}
+
+/* ===== Item 10: consistency chart bars - tighten now that x-axis labels are removed ===== */
+.consistency-chart>i{grid-template-rows:18px 1fr 6px}
+
+/* ===== Item 14: Live Leaderboard metric dropdown (replaces segmented tab bar) ===== */
+.ranking-metric-select{margin:14px 0 0;max-width:260px}
+.ranking-metric-select label{display:grid;gap:6px;min-width:0}
+.ranking-metric-select label>span{font-size:7px;letter-spacing:.75px;text-transform:uppercase;color:var(--muted);font-weight:900}
+.ranking-metric-select select{width:100%;height:42px;border:1px solid #aebbb6;background:#f8faf7;color:var(--navy);padding:0 30px 0 10px;font-size:9px;font-weight:900;outline:none}
+.ranking-metric-select select:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(240,90,40,.12)}
+@media(max-width:760px){.ranking-metric-select{max-width:100%}.ranking-metric-select select{height:46px;font-size:16px}}
