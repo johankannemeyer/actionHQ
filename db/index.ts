@@ -1,13 +1,19 @@
-import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
+import { neon } from "@neondatabase/serverless";
+import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-export function getDb() {
-  if (!env.DB) {
+let dbInstance: NeonHttpDatabase<typeof schema> | null = null;
+
+export function getDb(): NeonHttpDatabase<typeof schema> {
+  if (dbInstance) return dbInstance;
+
+  const url = process.env.DATABASE_URL;
+  if (!url) {
     throw new Error(
-      "Cloudflare D1 binding `DB` is unavailable. Set the `d1` field in .openai/hosting.json to `DB` or let your control plane inject the real binding values before using the database."
+      "DATABASE_URL is unavailable. Set it to your Neon (or other Postgres) connection string in the environment (e.g. Vercel project settings or a local .env file)."
     );
   }
 
-  return drizzle(env.DB, { schema });
+  dbInstance = drizzle(neon(url), { schema });
+  return dbInstance;
 }
