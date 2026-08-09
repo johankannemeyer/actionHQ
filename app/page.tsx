@@ -638,16 +638,6 @@ export default function Home() {
       return { ...row, extrasDiscipline, dotsFacedDiscipline, dotsBowledPressure, overallConsistency };
     }).filter((row) => row.overallConsistency !== null);
   }, [directoryProfiles, activities]);
-  const mostConsistentBatter = useMemo(() => {
-    const contenders = consistencyPlayers.filter((item) => item.battingConsistency !== null);
-    if (!contenders.length) return null;
-    return [...contenders].sort((a, b) => (b.battingConsistency as number) - (a.battingConsistency as number) || b.games - a.games)[0];
-  }, [consistencyPlayers]);
-  const mostConsistentBowler = useMemo(() => {
-    const contenders = consistencyPlayers.filter((item) => item.bowlingConsistency !== null);
-    if (!contenders.length) return null;
-    return [...contenders].sort((a, b) => (b.bowlingConsistency as number) - (a.bowlingConsistency as number) || b.games - a.games)[0];
-  }, [consistencyPlayers]);
   const sortedConsistencyPlayers = useMemo(() => {
     const rows = [...consistencyPlayers];
     const value = (item: number | null) => item === null ? -1 : item;
@@ -1329,26 +1319,7 @@ export default function Home() {
         </>}
 
         {view === "consistency" && <>
-          <div className="page-intro"><div><p className="overline">CONSISTENCY BOARD</p><h1>Who performs the same, week after week.</h1><p>Ranked by a reliability score built from the spread of each player&apos;s runs and wickets, plus bowling discipline and dot-ball pressure from every recorded delivery. Players need at least 5 career games to qualify.</p></div></div>
-          <section className="projection-spotlight-grid">
-            <article className="projection-spotlight-card runs-race">
-              <header><span>MOST RELIABLE BATTER</span></header>
-              {mostConsistentBatter ? <>
-                <div className="projection-spotlight-player"><Initials name={mostConsistentBatter.name} src={mostConsistentBatter.imageUrl} large /><div><strong>{mostConsistentBatter.name}</strong><small>{mostConsistentBatter.games} games · avg {Math.round(mostConsistentBatter.runsMean * 10) / 10} runs</small></div></div>
-                <div className="projection-progress"><i><em style={{ width: `${mostConsistentBatter.battingConsistency}%` }} /></i><span>{mostConsistentBatter.battingConsistency}% batting consistency</span></div>
-                <p>Runs swing by an average of {Math.round(mostConsistentBatter.runsSD * 10) / 10} from their {Math.round(mostConsistentBatter.runsMean * 10) / 10} run average — the tightest spread in the squad.</p>
-              </> : <div className="panel-empty">Need more qualifying players (5+ games) to rank batting reliability.</div>}
-            </article>
-            <article className="projection-spotlight-card wickets-race">
-              <header><span>MOST RELIABLE BOWLER</span></header>
-              {mostConsistentBowler ? <>
-                <div className="projection-spotlight-player"><Initials name={mostConsistentBowler.name} src={mostConsistentBowler.imageUrl} large /><div><strong>{mostConsistentBowler.name}</strong><small>{mostConsistentBowler.games} games · avg {Math.round(mostConsistentBowler.wicketsMean * 100) / 100} wkts</small></div></div>
-                <div className="projection-progress"><i><em style={{ width: `${mostConsistentBowler.bowlingConsistency}%` }} /></i><span>{mostConsistentBowler.bowlingConsistency}% bowling consistency</span></div>
-                <p>Wickets swing by an average of {Math.round(mostConsistentBowler.wicketsSD * 100) / 100} from their {Math.round(mostConsistentBowler.wicketsMean * 100) / 100} wicket average — the tightest spread in the squad.</p>
-              </> : <div className="panel-empty">Need more qualifying bowlers (5+ games, 1+ career wicket) to rank bowling reliability.</div>}
-            </article>
-          </section>
-          <section className="ranking-table-card">
+          <section className="ranking-table-card consistency-table-only">
             <header><div><p className="overline">FULL BOARD</p><h2>Every qualifying player, ranked</h2><span>{sortedConsistencyPlayers.length} player{sortedConsistencyPlayers.length === 1 ? "" : "s"} with 5+ career games</span></div><div className="ranking-metric-select"><label><span>Sort by</span><select aria-label="Sort consistency board" value={consistencySort} onChange={(event) => setConsistencySort(event.target.value as typeof consistencySort)}><option value="overall">Overall consistency</option><option value="batting">Batting consistency</option><option value="bowling">Bowling consistency</option><option value="games">Games played</option></select></label></div></header>
             {sortedConsistencyPlayers.length ? <div className="ranking-table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>G</th><th>Avg R</th><th>R SD</th><th>Bat %</th><th>Avg W</th><th>W SD</th><th>Bowl %</th><th>Avg Ex</th><th>Dots Faced</th><th>Dots Bowled</th><th>Overall</th></tr></thead><tbody>{sortedConsistencyPlayers.map((player, index) => <tr key={player.id}><td><span className={index < 3 ? `medal medal-${index + 1}` : "medal"}>{index + 1}</span></td><td><button onClick={() => openPublicPlayer(player.id)}><Initials name={player.name} src={player.imageUrl} /><span><b>{player.name}</b></span></button></td><td>{player.games}</td><td>{Math.round(player.runsMean * 10) / 10}</td><td>{Math.round(player.runsSD * 10) / 10}</td><td>{player.battingConsistency ?? "—"}</td><td>{Math.round(player.wicketsMean * 100) / 100}</td><td>{Math.round(player.wicketsSD * 100) / 100}</td><td>{player.bowlingConsistency ?? "—"}</td><td>{player.extrasMean !== null ? Math.round(player.extrasMean * 10) / 10 : "—"}</td><td>{player.dotsFacedMean !== null ? Math.round(player.dotsFacedMean * 10) / 10 : "—"}</td><td>{player.dotsBowledMean !== null ? Math.round(player.dotsBowledMean * 10) / 10 : "—"}</td><td className="active">{player.overallConsistency}%</td></tr>)}</tbody></table></div> : <div className="ranking-table-empty"><span>⌕</span><strong>No players qualify yet</strong><span>Players need at least 5 career games to appear on the consistency board.</span></div>}
             <footer><span><b>G</b> Games</span><span><b>Avg R</b> Runs average</span><span><b>R SD</b> Runs std. deviation</span><span><b>Bat %</b> Batting consistency</span><span><b>Avg W</b> Wickets average</span><span><b>W SD</b> Wickets std. deviation</span><span><b>Bowl %</b> Bowling consistency</span><span><b>Avg Ex</b> Extras conceded per game (lower is better)</span><span><b>Dots Faced</b> Dot balls faced per game (lower is better)</span><span><b>Dots Bowled</b> Dot balls bowled per game (higher is better)</span><span><b>Overall</b> Blended reliability score</span></footer>
