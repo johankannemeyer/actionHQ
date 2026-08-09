@@ -75,6 +75,7 @@ function Initials({ name, large = false, src = null }: { name: string; large?: b
   return <span className={className}>{resolved ? <img src={resolved} alt={name} /> : (initials || "AH")}</span>;
 }
 
+const FIELDING_POSITIONS = ["Wicket Keeper", "Off 1", "Off 2", "Off 3", "On 1", "On 2", "Backstop", "Floater"];
 const FINALS_QUALIFY_THRESHOLD = 0.33;
 function FinalsBadge({ games, totalMatches }: { games: number; totalMatches: number }) {
   if (!totalMatches) return null;
@@ -489,6 +490,11 @@ export default function Home() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
   const [scorecardSeasonId, setScorecardSeasonId] = useState<number | null>(null);
   const [rankingMetric, setRankingMetric] = useState<RankingMetric>("impact");
+  const [selectionOpponent, setSelectionOpponent] = useState("");
+  const [selectionDate, setSelectionDate] = useState("");
+  const [battingPairs, setBattingPairs] = useState<[string, string][]>([["", ""], ["", ""], ["", ""], ["", ""]]);
+  const [fieldingPositions, setFieldingPositions] = useState<Record<string, string>>(() => Object.fromEntries(FIELDING_POSITIONS.map((position) => [position, ""])));
+  const [selectionWorking, setSelectionWorking] = useState<"" | "batting" | "fielding">("");
   const [rankingSearch, setRankingSearch] = useState("");
   const [rankingParticipationFilter, setRankingParticipationFilter] = useState<RankingParticipationFilter>("all");
   const [rankingTableSort, setRankingTableSort] = useState<RankingTableSort>("impact");
@@ -1119,6 +1125,137 @@ export default function Home() {
     setView("team");
     window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
+
+  function selectionPlayerName(id: string) {
+    if (!id) return "";
+    const player = activeRosterPlayers.find((item) => String(item.id) === id);
+    return player ? player.name.replace(/^\s*\d+\s*/, "") || player.name : "";
+  }
+  function selectionPlayerJersey(id: string) {
+    if (!id) return "";
+    const player = activeRosterPlayers.find((item) => String(item.id) === id);
+    return player?.name.match(/^\s*(\d+)/)?.[1] ?? "";
+  }
+  function setBattingSlot(skinIndex: number, slot: 0 | 1, value: string) {
+    setBattingPairs((current) => current.map((pair, index) => index === skinIndex ? (slot === 0 ? [value, pair[1]] : [pair[0], value]) : pair) as [string, string][]);
+  }
+
+  async function loadImageAsync(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Could not load image"));
+      img.src = src;
+    });
+  }
+  function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") { ctx.roundRect(x, y, w, h, r); }
+    else { ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); }
+    ctx.closePath();
+  }
+  function triggerCanvasDownload(canvas: HTMLCanvasElement, filename: string) {
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = filename;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }
+  function drawSelectionHeader(ctx: CanvasRenderingContext2D, width: number, logo: HTMLImageElement | null, title: string) {
+    const padding = 56;
+    let y = 62;
+    if (logo) {
+      ctx.save(); ctx.beginPath(); ctx.arc(padding + 38, y + 38, 38, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+      ctx.drawImage(logo, padding, y, 76, 76); ctx.restore();
+    }
+    const textX = padding + (logo ? 96 : 0);
+    ctx.fillStyle = "#d7ef48"; ctx.font = "900 20px Arial, sans-serif"; ctx.textBaseline = "alphabetic";
+    ctx.fillText((team?.name ?? "ActionHQ").toUpperCase(), textX, y + 30);
+    ctx.fillStyle = "#ffffff"; ctx.font = "900 44px Arial, sans-serif";
+    ctx.fillText(title, textX, y + 74);
+    y += 118;
+    const subtitleParts = [selectionOpponent.trim() ? `vs ${selectionOpponent.trim()}` : "", selectionDate.trim()].filter(Boolean);
+    if (subtitleParts.length) {
+      ctx.fillStyle = "#9fb0b8"; ctx.font = "600 22px Arial, sans-serif";
+      ctx.fillText(subtitleParts.join(" · "), padding, y);
+      y += 18;
+    }
+    ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(padding, y + 24); ctx.lineTo(width - padding, y + 24); ctx.stroke();
+    return y + 60;
+  }
+
+  async function downloadBattingCard() {
+    setSelectionWorking("batting");
+    try {
+      const width = 1080, height = 1400;
+      const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext("2d"); if (!ctx) return;
+      const bg = ctx.createLinearGradient(0, 0, 0, height); bg.addColorStop(0, "#0d2230"); bg.addColorStop(1, "#071e2b");
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+      let logo: HTMLImageElement | null = null;
+      if (team?.imageUrl) { try { logo = await loadImageAsync(team.imageUrl); } catch { logo = null; } }
+      let y = drawSelectionHeader(ctx, width, logo, "Batting Order");
+      const padding = 56;
+      const cardHeight = 240, gap = 22;
+      battingPairs.forEach((pair, index) => {
+        const cardY = y + index * (cardHeight + gap);
+        ctx.fillStyle = "rgba(255,255,255,.05)"; roundedRect(ctx, padding, cardY, width - padding * 2, cardHeight, 18); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.1)"; ctx.lineWidth = 1.5; roundedRect(ctx, padding, cardY, width - padding * 2, cardHeight, 18); ctx.stroke();
+        ctx.fillStyle = "#f05a28"; roundedRect(ctx, padding + 24, cardY + 24, 128, 44, 22); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = "900 20px Arial, sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`SKIN ${index + 1}`, padding + 24 + 64, cardY + 52); ctx.textAlign = "left";
+        pair.forEach((playerId, slot) => {
+          const rowY = cardY + 100 + slot * 66;
+          const jersey = selectionPlayerJersey(playerId); const name = selectionPlayerName(playerId) || "Not selected";
+          ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.beginPath(); ctx.arc(padding + 48, rowY, 26, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#d7ef48"; ctx.font = "900 18px Arial, sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(jersey || "–", padding + 48, rowY + 6); ctx.textAlign = "left";
+          ctx.fillStyle = playerId ? "#ffffff" : "#6f838c"; ctx.font = "700 28px Arial, sans-serif";
+          ctx.fillText(name, padding + 92, rowY + 9);
+        });
+      });
+      ctx.fillStyle = "#5f7480"; ctx.font = "700 16px Arial, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("ActionHQ · Die Bron Action Cricket", width / 2, height - 30); ctx.textAlign = "left";
+      triggerCanvasDownload(canvas, `${(team?.name ?? "team").toLowerCase().replace(/\s+/g, "-")}-batting-order.png`);
+    } finally { setSelectionWorking(""); }
+  }
+
+  async function downloadFieldingCard() {
+    setSelectionWorking("fielding");
+    try {
+      const width = 1080, height = 1560;
+      const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext("2d"); if (!ctx) return;
+      const bg = ctx.createLinearGradient(0, 0, 0, height); bg.addColorStop(0, "#0d2230"); bg.addColorStop(1, "#071e2b");
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+      let logo: HTMLImageElement | null = null;
+      if (team?.imageUrl) { try { logo = await loadImageAsync(team.imageUrl); } catch { logo = null; } }
+      let y = drawSelectionHeader(ctx, width, logo, "Fielding Positions");
+      const padding = 56;
+      const cardHeight = 128, gap = 18;
+      FIELDING_POSITIONS.forEach((position, index) => {
+        const cardY = y + index * (cardHeight + gap);
+        const playerId = fieldingPositions[position] ?? "";
+        ctx.fillStyle = "rgba(255,255,255,.05)"; roundedRect(ctx, padding, cardY, width - padding * 2, cardHeight, 16); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.1)"; ctx.lineWidth = 1.5; roundedRect(ctx, padding, cardY, width - padding * 2, cardHeight, 16); ctx.stroke();
+        ctx.fillStyle = "#9fb0b8"; ctx.font = "900 18px Arial, sans-serif";
+        ctx.fillText(position.toUpperCase(), padding + 28, cardY + 42);
+        const jersey = selectionPlayerJersey(playerId); const name = selectionPlayerName(playerId) || "Not selected";
+        ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.beginPath(); ctx.arc(padding + 48, cardY + 86, 26, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#d7ef48"; ctx.font = "900 18px Arial, sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(jersey || "–", padding + 48, cardY + 92); ctx.textAlign = "left";
+        ctx.fillStyle = playerId ? "#ffffff" : "#6f838c"; ctx.font = "700 30px Arial, sans-serif";
+        ctx.fillText(name, padding + 92, cardY + 95);
+      });
+      ctx.fillStyle = "#5f7480"; ctx.font = "700 16px Arial, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("ActionHQ · Die Bron Action Cricket", width / 2, height - 30); ctx.textAlign = "left";
+      triggerCanvasDownload(canvas, `${(team?.name ?? "team").toLowerCase().replace(/\s+/g, "-")}-fielding-positions.png`);
+    } finally { setSelectionWorking(""); }
+  }
   const navItems: Array<{ id: View; label: string; mobileLabel: string; icon: ReactNode }> = [
     { id: "feed", label: "Home", mobileLabel: "Home", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> },
     { id: "players", label: "Players", mobileLabel: "Players", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.6 20c0-3.6 2.9-6 6.4-6s6.4 2.4 6.4 6"/><path d="M16.8 5.3a3 3 0 0 1 0 5.6"/><path d="M18 14.2c2.3.5 3.7 2.3 3.7 4.9"/></svg> },
@@ -1262,6 +1399,21 @@ export default function Home() {
               <div className="section-title"><div><p className="overline">CONFIRM ROSTER · {season?.name?.toUpperCase() || "CURRENT SEASON"}</p><h2>Player profiles and history</h2><p>Every player on this season&apos;s roster, with their photo, profile and completed match history.</p></div><span>{activeRosterPlayers.length ? `${activeRosterPlayers.length} active roster player${activeRosterPlayers.length === 1 ? "" : "s"}` : "No active roster players"}</span></div>
               {players.length ? <div className="squad-list">{players.map((player) => { const matchLinked = (player.linkedAppearances ?? 0) > 0; const profileId = player.linkedOwnerId ?? player.playerProfileId ?? 0; const profileImage = directoryProfiles.find((entry) => entry.id === profileId)?.imageUrl ?? profiles.find((entry) => entry.id === profileId)?.imageUrl ?? null; const rosterKey = player.linkedOwnerId ?? player.playerProfileId ?? player.id; const currentSeasonGames = currentSeasonGamesByKey.get(rosterKey); return <div key={player.id}><Initials name={player.name} src={profileImage} /><span><b>{player.name}</b><small>{player.games} games · {player.runs} runs · {player.wickets} wickets · {player.linkedAppearances ?? 0} scorecards</small>{currentSeasonGames !== undefined && <FinalsBadge games={currentSeasonGames} totalMatches={currentSeasonMatchCount} />}</span><em className={player.active === false ? "former" : matchLinked ? "claimed" : ""}>{player.active === false ? "FORMER" : matchLinked ? "MATCH HISTORY" : "ROSTER"}</em><span className="squad-actions"><label className="roster-photo-button">{profileImage ? "Change photo" : "Add photo"}<input type="file" accept="image/*" disabled={!profileId} onChange={async (event) => { const file = event.target.files?.[0]; event.target.value = ""; if (!file || !profileId) return; try { await savePlayerImage(profileId, await readImageThumbnail(file)); } catch { setNotice("Could not read that image."); } }} /></label><button onClick={() => openPublicPlayer(profileId)}>View profile</button>{season?.id === currentSeason?.id && player.active === false && <button className="roster-restore-button" disabled={working === "season"} onClick={() => setRosterPlayerActive(player, true)}>Restore</button>}</span></div>; })}</div> : season?.id === currentSeason?.id ? <form className="roster-import-empty" onSubmit={importSeasonRoster}><div><strong>Import the official roster</strong><p>Paste this season&apos;s Action Sport Team Profile URL. Only player names are imported; all statistics stay at zero until scorecards are added.</p></div><label>Team Profile URL<input required type="url" value={teamUrl} onChange={(event) => setTeamUrl(event.target.value)} placeholder="https://actionsport.spawtz.com/Leagues/TeamProfile?..." /></label><button disabled={working === "season"}>{working === "season" ? "Importing…" : "Import roster"}</button></form> : <div className="panel-empty">No roster was stored for this archived season. Make it current if you need to import its official roster.</div>}
               {!!archivedRosterPlayers.length && <details className="removed-roster-panel"><summary><span>Removed roster players</span><b>{archivedRosterPlayers.length}</b></summary><p>These players have no scorecard history in this season and are hidden from player pages and rankings.</p><div>{archivedRosterPlayers.map((player) => <article key={player.id}><Initials name={player.name} /><span><b>{player.name}</b><small>Permanent profile preserved · 0 games</small></span>{season?.id === currentSeason?.id && <button className="roster-restore-button" disabled={working === "season"} onClick={() => setRosterPlayerActive(player, true)}>Restore</button>}</article>)}</div></details>}
+            </section>
+            <section id="team-selection" className="squad-panel team-selection-panel">
+              <div className="section-title"><div><p className="overline">TEAM SELECTION</p><h2>Pick the side for the next match</h2><p>Choose batting pairs for each skin and the fielding positions, then download shareable images for the WhatsApp group.</p></div></div>
+              <div className="selection-match-fields"><label>Opponent<input value={selectionOpponent} onChange={(event) => setSelectionOpponent(event.target.value)} placeholder="e.g. Brakkies" /></label><label>Match date<input value={selectionDate} onChange={(event) => setSelectionDate(event.target.value)} placeholder="e.g. 10 Aug 2026" /></label></div>
+              <div className="selection-block">
+                <div className="selection-block-head"><h3>Batting order</h3><span>2 batsmen per skin · 4 skins</span></div>
+                <div className="selection-skin-grid">{battingPairs.map((pair, index) => <div className="selection-skin-card" key={index}><b>Skin {index + 1}</b><select value={pair[0]} onChange={(event) => setBattingSlot(index, 0, event.target.value)}><option value="">Batsman 1</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select><select value={pair[1]} onChange={(event) => setBattingSlot(index, 1, event.target.value)}><option value="">Batsman 2</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select></div>)}</div>
+                <button type="button" className="primary-action" disabled={selectionWorking === "batting" || !activeRosterPlayers.length} onClick={downloadBattingCard}>{selectionWorking === "batting" ? "Preparing image…" : "Download batting order PNG"}</button>
+              </div>
+              <div className="selection-block">
+                <div className="selection-block-head"><h3>Fielding positions</h3><span>8 positions</span></div>
+                <div className="selection-fielding-grid">{FIELDING_POSITIONS.map((position) => <label className="selection-fielding-row" key={position}><span>{position}</span><select value={fieldingPositions[position] ?? ""} onChange={(event) => setFieldingPositions((current) => ({ ...current, [position]: event.target.value }))}><option value="">Choose player</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select></label>)}</div>
+                <button type="button" className="primary-action" disabled={selectionWorking === "fielding" || !activeRosterPlayers.length} onClick={downloadFieldingCard}>{selectionWorking === "fielding" ? "Preparing image…" : "Download fielding positions PNG"}</button>
+              </div>
+              {!activeRosterPlayers.length && <div className="panel-empty">Add an active roster before picking a team selection.</div>}
             </section>
             {season?.id !== currentSeason?.id && <div className="archived-season-note"><span>ARCHIVED SEASON</span><strong>{season?.name || "This season"} is protected.</strong><p>You can review its roster and completed games below. Make it current only if you need to import another scorecard.</p></div>}
             <section id="season-results" className="season-game-manager"><div className="section-title"><div><p className="overline">SEASON GAMES</p><h2>Completed scorecards</h2></div><span>{seasonActivities.length} linked to {season?.name || "the selected season"}</span></div>{seasonActivities.length ? seasonActivities.map((match) => <div className="season-game-row" key={match.id}><button onClick={() => openScorecard(match.id)}><span>{matchTypeLabel(match.matchType)} · Fixture {match.fixtureId}</span><b>{match.homeTeam} {match.homeScore}–{match.awayScore} {match.awayTeam}</b><small>{match.playedAt}</small></button><label>Move to<select value={match.teamSeasonId ?? currentSeason?.id ?? ""} disabled={working === "season"} onChange={(event) => moveMatchToSeason(match.id, Number(event.target.value))}>{team.seasons.map((item) => <option key={item.id} value={item.id}>{item.name || `Season ${item.externalSeasonId}`}</option>)}</select></label>{canManageTeam && <button type="button" className="remove-game" disabled={working === "remove"} onClick={() => removeMatch(match)} aria-label={`Remove Fixture ${match.fixtureId}`}>Remove</button>}</div>) : <div className="panel-empty">No completed scorecards linked to this season yet.</div>}</section>
