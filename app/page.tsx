@@ -477,8 +477,8 @@ function PlayerPerformanceCharts({ player, activities, seasonFilter, onSeasonFil
   const consistency = Math.round(positiveMatches / games * 100);
   const boundaryCount = ["fours", "fives", "sixes", "sevensPlus"].reduce((sum, id) => sum + (scoring.find((item) => item.id === id)?.count ?? 0), 0);
   const boundaryRate = Math.round(boundaryCount / totalOutcomes * 100);
-  const battingScore = Math.min(100, Math.round(averageRuns / 24 * 100));
-  const bowlingScore = Math.min(100, Math.round(averageWickets / 3 * 100));
+  const battingScore = Math.min(100, Math.round(averageRuns / 17 * 100));
+  const bowlingScore = Math.min(100, Math.round(averageWickets / 2 * 100));
   const impactScore = Math.min(100, Math.max(0, Math.round((averageImpact + 12) / 36 * 100)));
   const metricValue = (match: PlayerMatch) => formMetric === "runs" ? match.runs : formMetric === "wickets" ? match.wickets : match.contribution;
   const maxMetric = Math.max(...linked.map((match) => Math.abs(metricValue(match))), 1);
