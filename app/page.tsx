@@ -163,14 +163,16 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   const recent = analysed;
   if (!recent.length) return <section className="analytics-panel"><div className="section-title"><div><p className="overline">TEAM PERFORMANCE</p><h2>Form charts</h2></div></div><div className="panel-empty">Upload the first completed HTML scorecard to unlock team scoring, results and skins charts.</div></section>;
 
-  type TeamPlayerIntelligence = { name: string; balls: number; dots: number; rotations: number; dismissals: number; wickets: number; bowlingBalls: number; bowlingDots: number; extras: number };
+  type TeamPlayerIntelligence = { name: string; balls: number; dots: number; rotations: number; dismissals: number; wickets: number; bowlingBalls: number; bowlingDots: number; extras: number; matches: Set<number> };
   const playerIntelligence = new Map<string, TeamPlayerIntelligence>();
-  const playerRecord = (name: string) => {
+  const playerRecord = (name: string, matchId?: number) => {
     const key = playerKey(name);
-    const current = playerIntelligence.get(key) ?? { name, balls: 0, dots: 0, rotations: 0, dismissals: 0, wickets: 0, bowlingBalls: 0, bowlingDots: 0, extras: 0 };
+    const current = playerIntelligence.get(key) ?? { name, balls: 0, dots: 0, rotations: 0, dismissals: 0, wickets: 0, bowlingBalls: 0, bowlingDots: 0, extras: 0, matches: new Set<number>() };
     playerIntelligence.set(key, current);
+    if (matchId !== undefined) current.matches.add(matchId);
     return current;
   };
+  const MIN_INTELLIGENCE_GAMES = 5;
   const dismissalCounts = new Map<string, number>();
   const teamRunTypes = { dots: 0, ones: 0, twos: 0, threes: 0, fours: 0, fives: 0, sixes: 0, sevensPlus: 0, dismissals: 0 };
   const teamExtras = { wides: 0, noBalls: 0 };
@@ -198,7 +200,7 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
             }
           }
           if (!teamBatting && over.bowlerName.trim()) {
-            const bowler = playerRecord(over.bowlerName);
+            const bowler = playerRecord(over.bowlerName, match.id);
             bowler.wickets += over.wickets;
             bowler.bowlingBalls += over.deliveries?.length ?? 0;
             bowler.bowlingDots += (over.deliveries ?? []).filter((delivery) => deliveryRunValue(delivery.outcome) === 0).length;
@@ -208,7 +210,7 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
           if (!teamBatting) continue;
           for (const delivery of over.deliveries ?? []) {
             if (!delivery.batterName.trim()) continue;
-            const batter = playerRecord(delivery.batterName);
+            const batter = playerRecord(delivery.batterName, match.id);
             const runs = deliveryRunValue(delivery.outcome);
             batter.balls += 1;
             if (runs === 0) { batter.dots += 1; teamRunTypes.dots += 1; }
@@ -246,13 +248,13 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   const wicketsExchangeTotal = Math.max(1, teamWicketsTaken + teamWicketsLost);
   const wicketsTakenShare = teamWicketsTaken / wicketsExchangeTotal * 100;
   const wicketsExchangeGradient = `#2a7b51 0% ${wicketsTakenShare}%, #a83e2a ${wicketsTakenShare}% 100%`;
-  const dotAvoiders = intelligenceRows.filter((player) => player.balls > 0).sort((a, b) => a.dots / a.balls - b.dots / b.balls).slice(0, 5);
-  const wicketResilience = intelligenceRows.filter((player) => player.balls > 0).sort((a, b) => (b.dismissals ? b.balls / b.dismissals : b.balls + 1000) - (a.dismissals ? a.balls / a.dismissals : a.balls + 1000)).slice(0, 5);
-  const runRotators = intelligenceRows.filter((player) => player.balls > 0).sort((a, b) => b.rotations / b.balls - a.rotations / a.balls).slice(0, 5);
-  const wicketTakers = intelligenceRows.filter((player) => player.bowlingBalls > 0).sort((a, b) => b.wickets - a.wickets).slice(0, 5);
+  const dotAvoiders = intelligenceRows.filter((player) => player.balls > 0 && player.matches.size >= MIN_INTELLIGENCE_GAMES).sort((a, b) => a.dots / a.balls - b.dots / b.balls).slice(0, 5);
+  const wicketResilience = intelligenceRows.filter((player) => player.balls > 0 && player.matches.size >= MIN_INTELLIGENCE_GAMES).sort((a, b) => (b.dismissals ? b.balls / b.dismissals : b.balls + 1000) - (a.dismissals ? a.balls / a.dismissals : a.balls + 1000)).slice(0, 5);
+  const runRotators = intelligenceRows.filter((player) => player.balls > 0 && player.matches.size >= MIN_INTELLIGENCE_GAMES).sort((a, b) => b.rotations / b.balls - a.rotations / a.balls).slice(0, 5);
+  const wicketTakers = intelligenceRows.filter((player) => player.bowlingBalls > 0 && player.matches.size >= MIN_INTELLIGENCE_GAMES).sort((a, b) => b.wickets - a.wickets).slice(0, 5);
   const topWicketTaker = Math.max(...wicketTakers.map((player) => player.wickets), 1);
-  const dotBallCreators = intelligenceRows.filter((player) => player.bowlingBalls > 0).sort((a, b) => b.bowlingDots / b.bowlingBalls - a.bowlingDots / a.bowlingBalls).slice(0, 5);
-  const bowlingDiscipline = intelligenceRows.filter((player) => player.bowlingBalls > 0).sort((a, b) => a.extras / a.bowlingBalls - b.extras / b.bowlingBalls).slice(0, 5);
+  const dotBallCreators = intelligenceRows.filter((player) => player.bowlingBalls > 0 && player.matches.size >= MIN_INTELLIGENCE_GAMES).sort((a, b) => b.bowlingDots / b.bowlingBalls - a.bowlingDots / a.bowlingBalls).slice(0, 5);
+  const bowlingDiscipline = intelligenceRows.filter((player) => player.bowlingBalls > 0 && player.matches.size >= MIN_INTELLIGENCE_GAMES).sort((a, b) => a.extras / a.bowlingBalls - b.extras / b.bowlingBalls).slice(0, 5);
   const wicketPressure = intelligenceRows.filter((player) => player.bowlingBalls > 0).sort((a, b) => b.wickets - a.wickets || b.bowlingDots / b.bowlingBalls - a.bowlingDots / a.bowlingBalls).slice(0, 6);
   const maxScore = Math.max(...recent.flatMap((match) => [match.scored, match.conceded]), 1);
   const wins = recent.filter((match) => match.result === "W").length;
@@ -287,7 +289,7 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   };
   const first = splitStats(true);
   const second = splitStats(false);
-  const rankRows = (rows: TeamPlayerIntelligence[], value: (player: TeamPlayerIntelligence) => string, width: (player: TeamPlayerIntelligence) => number) => rows.length ? rows.map((player, index) => <div className="intelligence-rank-row" key={`${playerKey(player.name)}-${index}`}><b>{index + 1}</b><Initials name={player.name} /><span><strong>{player.name}</strong><i><em style={{ width: `${Math.max(4, Math.min(100, width(player)))}%` }} /></i></span><em>{value(player)}</em></div>) : <div className="panel-empty">Ball-by-ball data is needed for this ranking.</div>;
+  const rankRows = (rows: TeamPlayerIntelligence[], value: (player: TeamPlayerIntelligence) => string, width: (player: TeamPlayerIntelligence) => number) => rows.length ? rows.map((player, index) => <div className="intelligence-rank-row" key={`${playerKey(player.name)}-${index}`}><b>{index + 1}</b><Initials name={player.name} /><span><strong>{player.name}</strong><i><em style={{ width: `${Math.max(4, Math.min(100, width(player)))}%` }} /></i></span><em>{value(player)}</em></div>) : <div className="panel-empty">No players qualify yet — this ranking needs at least {MIN_INTELLIGENCE_GAMES} games played.</div>;
 
   return <div className="team-intelligence-suite">
     <section className="analytics-panel team-analytics">
