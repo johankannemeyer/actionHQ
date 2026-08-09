@@ -106,7 +106,8 @@
 .combo-tooltip span i{width:6px;height:6px;border-radius:50%;flex:none}
 .combo-tooltip span b{margin-left:auto;color:#fff}
 .combo-column:hover .combo-tooltip{opacity:1;transform:translateX(-50%) translateY(0)}
-.wickets-trend-card .score-trend-chart{padding-top:64px;overflow-y:visible}
+.wickets-trend-card .score-trend-chart{padding-top:150px;overflow-y:visible;justify-content:flex-start}
+.wickets-trend-card .combo-column{flex:1 1 90px;min-width:90px;max-width:130px}
 .legend-taken{background:var(--green)}
 .legend-lost{background:#a83e2a}
 .legend-extra-for{background:var(--lime)}
