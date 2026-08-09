@@ -1139,6 +1139,10 @@ export default function Home() {
   function setBattingSlot(skinIndex: number, slot: 0 | 1, value: string) {
     setBattingPairs((current) => current.map((pair, index) => index === skinIndex ? (slot === 0 ? [value, pair[1]] : [pair[0], value]) : pair) as [string, string][]);
   }
+  const selectionTakenIds = new Set([...battingPairs.flat(), ...Object.values(fieldingPositions)].filter(Boolean));
+  function selectionOptionDisabled(id: string, currentValue: string) {
+    return id !== currentValue && selectionTakenIds.has(id);
+  }
 
   async function loadImageAsync(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -1403,12 +1407,12 @@ export default function Home() {
               <div className="selection-match-fields"><label>Opponent<input value={selectionOpponent} onChange={(event) => setSelectionOpponent(event.target.value)} placeholder="e.g. Brakkies" /></label><label>Match date<input value={selectionDate} onChange={(event) => setSelectionDate(event.target.value)} placeholder="e.g. 10 Aug 2026" /></label></div>
               <div className="selection-block">
                 <div className="selection-block-head"><h3>Batting order</h3><span>2 batsmen per skin · 4 skins</span></div>
-                <div className="selection-skin-grid">{battingPairs.map((pair, index) => <div className="selection-skin-card" key={index}><b>Skin {index + 1}</b><select value={pair[0]} onChange={(event) => setBattingSlot(index, 0, event.target.value)}><option value="">Batsman 1</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select><select value={pair[1]} onChange={(event) => setBattingSlot(index, 1, event.target.value)}><option value="">Batsman 2</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select></div>)}</div>
+                <div className="selection-skin-grid">{battingPairs.map((pair, index) => <div className="selection-skin-card" key={index}><b>Skin {index + 1}</b><select value={pair[0]} onChange={(event) => setBattingSlot(index, 0, event.target.value)}><option value="">Batsman 1</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)} disabled={selectionOptionDisabled(String(item.id), pair[0])}>{item.name}</option>)}</select><select value={pair[1]} onChange={(event) => setBattingSlot(index, 1, event.target.value)}><option value="">Batsman 2</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)} disabled={selectionOptionDisabled(String(item.id), pair[1])}>{item.name}</option>)}</select></div>)}</div>
                 <button type="button" className="primary-action" disabled={selectionWorking === "batting" || !activeRosterPlayers.length} onClick={downloadBattingCard}>{selectionWorking === "batting" ? "Preparing image…" : "Download batting order PNG"}</button>
               </div>
               <div className="selection-block">
                 <div className="selection-block-head"><h3>Fielding positions</h3><span>8 positions</span></div>
-                <div className="selection-fielding-grid">{FIELDING_POSITIONS.map((position) => <label className="selection-fielding-row" key={position}><span>{position}</span><select value={fieldingPositions[position] ?? ""} onChange={(event) => setFieldingPositions((current) => ({ ...current, [position]: event.target.value }))}><option value="">Choose player</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select></label>)}</div>
+                <div className="selection-fielding-grid">{FIELDING_POSITIONS.map((position) => <label className="selection-fielding-row" key={position}><span>{position}</span><select value={fieldingPositions[position] ?? ""} onChange={(event) => setFieldingPositions((current) => ({ ...current, [position]: event.target.value }))}><option value="">Choose player</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)} disabled={selectionOptionDisabled(String(item.id), fieldingPositions[position] ?? "")}>{item.name}</option>)}</select></label>)}</div>
                 <button type="button" className="primary-action" disabled={selectionWorking === "fielding" || !activeRosterPlayers.length} onClick={downloadFieldingCard}>{selectionWorking === "fielding" ? "Preparing image…" : "Download fielding positions PNG"}</button>
               </div>
               {!activeRosterPlayers.length && <div className="panel-empty">Add an active roster before picking a team selection.</div>}
