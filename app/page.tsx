@@ -164,11 +164,18 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   };
   const dismissalCounts = new Map<string, number>();
   const teamRunTypes = { dots: 0, ones: 0, twos: 0, threes: 0, fours: 0, fives: 0, sixes: 0, sevensPlus: 0, dismissals: 0 };
+  const teamExtras = { wides: 0, noBalls: 0 };
   for (const match of teamMatches) {
     for (const innings of match.innings ?? []) {
       const teamBatting = innings.battingTeam.toLowerCase() === teamName.toLowerCase();
       for (const pair of innings.pairs ?? []) {
         for (const over of pair.overs ?? []) {
+          if (!teamBatting) {
+            for (const delivery of over.deliveries ?? []) {
+              if (isWideOutcome(delivery.outcome)) teamExtras.wides += 1;
+              else if (isNoBallOutcome(delivery.outcome)) teamExtras.noBalls += 1;
+            }
+          }
           if (!teamBatting && over.bowlerName.trim()) {
             const bowler = playerRecord(over.bowlerName);
             bowler.wickets += over.wickets;
@@ -203,6 +210,19 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   }
 
   const intelligenceRows = [...playerIntelligence.values()];
+  const gamesPlayed = Math.max(1, analysed.length);
+  const teamWicketsTaken = intelligenceRows.reduce((sum, player) => sum + player.wickets, 0);
+  const teamWicketsLost = teamRunTypes.dismissals;
+  const widesPerGame = Math.round(teamExtras.wides / gamesPlayed * 10) / 10;
+  const noBallsPerGame = Math.round(teamExtras.noBalls / gamesPlayed * 10) / 10;
+  const wicketsTakenPerGame = Math.round(teamWicketsTaken / gamesPlayed * 10) / 10;
+  const wicketsLostPerGame = Math.round(teamWicketsLost / gamesPlayed * 10) / 10;
+  const disciplineTotal = Math.max(1, teamExtras.wides + teamExtras.noBalls);
+  const widesShare = teamExtras.wides / disciplineTotal * 100;
+  const disciplineGradient = `#f05a28 0% ${widesShare}%, #071e2b ${widesShare}% 100%`;
+  const wicketsExchangeTotal = Math.max(1, teamWicketsTaken + teamWicketsLost);
+  const wicketsTakenShare = teamWicketsTaken / wicketsExchangeTotal * 100;
+  const wicketsExchangeGradient = `#2a7b51 0% ${wicketsTakenShare}%, #a83e2a ${wicketsTakenShare}% 100%`;
   const dotAvoiders = intelligenceRows.filter((player) => player.balls > 0).sort((a, b) => a.dots / a.balls - b.dots / b.balls).slice(0, 5);
   const wicketResilience = intelligenceRows.filter((player) => player.balls > 0).sort((a, b) => (b.dismissals ? b.balls / b.dismissals : b.balls + 1000) - (a.dismissals ? a.balls / a.dismissals : a.balls + 1000)).slice(0, 5);
   const runRotators = intelligenceRows.filter((player) => player.balls > 0).sort((a, b) => b.rotations / b.balls - a.rotations / a.balls).slice(0, 5);
@@ -260,6 +280,8 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
       <article className="consistency-card"><header><div><p>TEAM SCORING CONSISTENCY</p><h2>{consistencyScore}% repeatability</h2><span>Average {Math.round(seasonAverage * 10) / 10} · deviation {Math.round(scoreDeviation * 10) / 10}</span></div><strong>{analysed.length}<small>GAMES</small></strong></header><div className="consistency-chart" role="img" aria-label={`${teamName} scoring consistency across ${analysed.length} matches`}>{analysed.map((match) => <i key={match.id} title={`Fixture ${match.fixtureId}: ${match.scored} scored`}><b>{match.scored}</b><em style={{ height: `${Math.max(5, match.scored / seasonMaxScore * 100)}%` }} /></i>)}</div></article>
       <article className="run-type-card"><header><div><p>TEAM RUN TYPES</p><h2>How the runs are built</h2></div><span>{runTypeTotal} outcomes</span></header><div><div className="team-run-donut" role="img" aria-label={`${teamName} run type distribution`} style={{ background: `conic-gradient(${runTypeGradient})` }}><span><strong>{Math.round((teamRunTypes.ones + teamRunTypes.twos + teamRunTypes.threes) / runTypeTotal * 100)}%</strong><small>ROTATION</small></span></div><div className="team-run-legend">{runTypeEntries.map((item) => <span key={item.label}><i style={{ background: item.color }} /><b>{item.label}</b><strong>{item.value}</strong><small>{Math.round(item.value / runTypeTotal * 100)}%</small></span>)}</div></div></article>
       <article className="wicket-pressure-card"><header><div><p>TEAM WICKET PRESSURE ANALYSIS</p><h2>Who creates the threat?</h2></div><span>Wickets and dot-ball pressure</span></header><div className="pressure-rank-list">{wicketPressure.length ? wicketPressure.map((player, index) => <div key={`${playerKey(player.name)}-${index}`}><b>{index + 1}</b><Initials name={player.name} /><span><strong>{player.name}</strong><small>{Math.round(player.bowlingDots / player.bowlingBalls * 100)}% dot balls · {player.extras} extras</small></span><em>{player.wickets}<small>WKTS</small></em></div>) : <div className="panel-empty">Bowling deliveries will appear after the next detailed scorecard import.</div>}</div></article>
+      <article className="discipline-card"><header><div><p>BOWLING DISCIPLINE</p><h2>Wides &amp; no-balls conceded</h2></div><span>{gamesPlayed} game{gamesPlayed === 1 ? "" : "s"} tracked</span></header><div><div className="discipline-donut" role="img" aria-label={`${teamName} extras conceded breakdown`} style={{ background: `conic-gradient(${disciplineGradient})` }}><span><strong>{teamExtras.wides + teamExtras.noBalls}</strong><small>EXTRAS</small></span></div><div className="discipline-legend"><span><i style={{ background: "#f05a28" }} /><b>Wides</b><strong>{widesPerGame}/gm</strong><small>{teamExtras.wides} total</small></span><span><i style={{ background: "#071e2b" }} /><b>No balls</b><strong>{noBallsPerGame}/gm</strong><small>{teamExtras.noBalls} total</small></span></div></div></article>
+      <article className="wickets-exchange-card"><header><div><p>WICKETS EXCHANGE</p><h2>Taken vs lost per game</h2></div><span>{gamesPlayed} game{gamesPlayed === 1 ? "" : "s"} tracked</span></header><div><div className="wickets-exchange-donut" role="img" aria-label={`${teamName} wickets taken versus lost`} style={{ background: `conic-gradient(${wicketsExchangeGradient})` }}><span><strong>{wicketsTakenPerGame}</strong><small>TAKEN/GM</small></span></div><div className="wickets-exchange-legend"><span><i style={{ background: "#2a7b51" }} /><b>Wickets taken</b><strong>{wicketsTakenPerGame}/gm</strong><small>{teamWicketsTaken} total</small></span><span><i style={{ background: "#a83e2a" }} /><b>Wickets lost</b><strong>{wicketsLostPerGame}/gm</strong><small>{teamWicketsLost} total</small></span></div></div></article>
       <article className="wicket-risk-card"><header><div><p>TEAM WICKET RISK PATTERN</p><h2>How dismissals happen</h2></div><span>{dismissalEntries.reduce((sum, [, count]) => sum + count, 0)} dismissals</span></header><div><div className="wicket-risk-donut" role="img" aria-label={`${teamName} dismissal pattern`} style={{ background: `conic-gradient(${dismissalGradient || "#eee7df 0 100%"})` }}><span><strong>{dismissalEntries.reduce((sum, [, count]) => sum + count, 0)}</strong><small>OUTS</small></span></div><div className="wicket-risk-legend">{dismissalEntries.length ? dismissalEntries.map(([label, count], index) => <span key={label}><i style={{ background: dismissalPalette[index % dismissalPalette.length] }} /><b>{label}</b><strong>{count}</strong></span>) : <small>No dismissal events recorded.</small>}</div></div></article>
       <article className="innings-split-card"><header><div><p>INNINGS SPLITS</p><h2>Batting first vs bowling first</h2></div><span>{analysed.length} analyzed games</span></header><div><section><span>BATTING FIRST</span><strong>{first.average}</strong><small>average score · {first.wins}/{first.games} wins</small></section><section><span>BOWLING FIRST</span><strong>{second.average}</strong><small>average score · {second.wins}/{second.games} wins</small></section></div></article>
     </section>
@@ -1288,8 +1310,7 @@ export default function Home() {
             </section>
 
             <section className="ranking-board-card">
-              <header className="ranking-board-heading"><div><p className="overline">LIVE LEADERBOARD</p><h2>Choose what matters</h2></div><button className="outline-button" onClick={() => navigateTo("players")}>View player profiles</button></header>
-              <div className="ranking-metric-select"><label><span>Rank by</span><select aria-label="Choose leaderboard metric" value={rankingMetric} onChange={(event) => setRankingMetric(event.target.value as RankingMetric)}>{rankingMetricOptions.map((metric) => <option key={metric.id} value={metric.id}>{metric.label}</option>)}</select></label></div>
+              <header className="ranking-board-heading"><div><p className="overline">LIVE LEADERBOARD</p><h2>Choose what matters</h2></div><div className="ranking-board-heading-controls"><div className="ranking-metric-select"><label><span>Rank by</span><select aria-label="Choose leaderboard metric" value={rankingMetric} onChange={(event) => setRankingMetric(event.target.value as RankingMetric)}>{rankingMetricOptions.map((metric) => <option key={metric.id} value={metric.id}>{metric.label}</option>)}</select></label></div><button className="outline-button" onClick={() => navigateTo("players")}>View player profiles</button></div></header>
               <div className="ranking-focus-line"><span><b>{activeRankingMetric.label}</b><small>{activeRankingMetric.description}</small></span><em>{rankedPlayers.length} players ranked</em></div>
               <div className="ranking-podium">
                 {rankedPlayers[0] && <button className="ranking-champion" onClick={() => { const target = rankedPlayers[0].linkedOwnerId ?? rankedPlayers[0].playerProfileId; if (target) openPublicPlayer(target); }}><span className="ranking-place">01</span><Initials name={rankedPlayers[0].name} large /><div><small>SEASON LEADER · {activeRankingMetric.short}</small><strong>{rankedPlayers[0].name}</strong><p>{rankedPlayers[0].games} games · {rankedPlayers[0].runs} runs · {rankedPlayers[0].wickets} wickets</p></div><b>{rankingMetricDisplay(rankedPlayers[0], rankingMetric)}<small>{activeRankingMetric.label}</small></b></button>}
