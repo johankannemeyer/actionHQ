@@ -271,7 +271,7 @@ img,video,canvas,svg{max-width:100%}
   .ranking-board-heading>div>span,.ranking-table-card>header>span,.ranking-insights-bridge span{font-size:10px;line-height:1.5}
   .ranking-metric-switch button span{font-size:8px}
   .ranking-table-scroll,.scorecard-stat-table,.skins-scorecard{max-width:100%}
-  .ranking-table-card table{min-width:520px}
+  .ranking-table-scroll table{min-width:560px}
   .ranking-table-card td:nth-child(2){min-width:112px;max-width:112px}
   .ranking-table-card th:first-child,.ranking-table-card td:first-child{position:sticky;left:0;z-index:2}
   .ranking-table-card th:nth-child(2),.ranking-table-card td:nth-child(2){position:sticky;left:48px;z-index:2}
@@ -279,6 +279,8 @@ img,video,canvas,svg{max-width:100%}
   .ranking-table-card td:first-child,.ranking-table-card td:nth-child(2){background:#fff}
   .ranking-table-card tbody tr:hover td:first-child,.ranking-table-card tbody tr:hover td:nth-child(2){background:#fafbf9}
   .ranking-table-card td:nth-child(2){box-shadow:2px 0 4px rgba(18,35,43,.06)}
+  .ranking-table-card th:last-child,.ranking-table-card td:last-child{padding-right:18px}
+  .ranking-table-card .ranking-table-scroll{margin-left:0;margin-right:0;padding-right:14px}
   .smart-athlete-id p,.smart-card-heading>div>span,.chart-explainer,.player-depth-card>header div>span{font-size:9px}
   .career-stat-grid span,.career-stat-grid small,.bowling-metric-grid span{font-size:9px}
   .team-ranking-grid header small,.intelligence-rank-row span small{font-size:8px}
@@ -437,7 +439,7 @@ img,video,canvas,svg{max-width:100%}
 
 /* ===== Complete Team Board: readable + frozen player column on mobile ===== */
 @media(max-width:760px){
-  .ranking-table-card table{min-width:520px}
+  .ranking-table-scroll table{min-width:560px}
   .ranking-table-card th{font-size:8px;height:34px}
   .ranking-table-card td{font-size:11px;height:46px;padding:6px 8px}
   .ranking-table-card td.active{font-size:12px}
