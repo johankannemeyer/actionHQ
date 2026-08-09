@@ -20,7 +20,7 @@ type TeamProfileCandidate = { sourceProfileId: number; sourceName: string; teams
 type PlayerProfile = { id: number; displayName: string; email: string | null; phone: string | null; bio: string; role: string; preferredVenue: string; registeredAt: string | null; imageUrl: string | null; linkedSourceIds: number[]; linkCandidates: TeamProfileCandidate[]; allTime: { games: number; runs: number; wickets: number; contribution: number; strikeRate: number; seasons: number; linkedMatches: number; fillerMatches: number }; seasons: PlayerSeason[]; matches: PlayerMatch[] };
 type ScorecardCandidate = { name: string; teamName: string };
 type Follow = { id: number; followerProfileId: number; followingProfileId: number; createdAt: string };
-type View = "feed" | "performance" | "team" | "players" | "leaderboards" | "projections" | "fixtures" | "search" | "player" | "account" | "privacy" | "scorecard";
+type View = "feed" | "performance" | "team" | "players" | "leaderboards" | "consistency" | "fixtures" | "search" | "player" | "account" | "privacy" | "scorecard";
 type RankingMetric = "impact" | "runs" | "wickets" | "runsAverage" | "strikeRate";
 type RankingTableSort = RankingMetric | "games" | "name";
 type RankingParticipationFilter = "all" | "played" | "waiting";
@@ -454,7 +454,7 @@ export default function Home() {
   const [teamStatsSort, setTeamStatsSort] = useState<TeamStatsSort>("oldest");
   const [teamStatsAllTime, setTeamStatsAllTime] = useState(false);
   const [rankingAllTime, setRankingAllTime] = useState(false);
-  const [projectionSort, setProjectionSort] = useState<"impact" | "runs" | "wickets" | "games" | "runsRace" | "wicketsRace">("impact");
+  const [consistencySort, setConsistencySort] = useState<"overall" | "batting" | "bowling" | "games">("overall");
   const [fillerFixtureId, setFillerFixtureId] = useState("2336793");
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -546,35 +546,50 @@ export default function Home() {
   const rankingTopWickets = useMemo(() => [...rankingPlayers].sort((a, b) => b.wickets - a.wickets)[0] ?? null, [rankingPlayers]);
   const topWickets = [...players].sort((a, b) => b.wickets - a.wickets);
   const topRuns = [...players].sort((a, b) => b.runs - a.runs);
-  const RUNS_MILESTONE = 1000;
-  const WICKETS_MILESTONE = 100;
-  const projectionPlayers = useMemo(() => allTimeRankingPlayers.filter((item) => item.games >= 5).map((item) => {
-    const runsPerGame = item.games ? item.runs / item.games : 0;
-    const wicketsPerGame = item.games ? item.wickets / item.games : 0;
-    const gamesToRuns = item.runs >= RUNS_MILESTONE ? 0 : runsPerGame > 0 ? Math.ceil((RUNS_MILESTONE - item.runs) / runsPerGame) : null;
-    const gamesToWickets = item.wickets >= WICKETS_MILESTONE ? 0 : wicketsPerGame > 0 ? Math.ceil((WICKETS_MILESTONE - item.wickets) / wicketsPerGame) : null;
-    return { ...item, runsPerGame, wicketsPerGame, gamesToRuns, gamesToWickets };
-  }), [allTimeRankingPlayers]);
-  const runsRaceLeader = useMemo(() => {
-    const contenders = projectionPlayers.filter((item) => item.gamesToRuns !== null);
+  const CONSISTENCY_MIN_GAMES = 5;
+  const average = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+  const sampleStdDev = (values: number[], mean: number) => values.length ? Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length) : 0;
+  const reliabilityScore = (sd: number, mean: number) => mean > 0 ? Math.max(0, Math.min(100, Math.round(100 - (sd / mean) * 100))) : null;
+  const consistencyPlayers = useMemo(() => {
+    const rows = directoryProfiles.map((entry) => {
+      const matches = entry.matches ?? [];
+      if (matches.length < CONSISTENCY_MIN_GAMES) return null;
+      const runsSamples = matches.map((item) => item.runs);
+      const wicketsSamples = matches.map((item) => item.wickets);
+      const runsMean = average(runsSamples);
+      const runsSD = sampleStdDev(runsSamples, runsMean);
+      const battingConsistency = reliabilityScore(runsSD, runsMean);
+      const wicketsMean = average(wicketsSamples);
+      const wicketsSD = sampleStdDev(wicketsSamples, wicketsMean);
+      const bowlingConsistency = entry.allTime.wickets > 0 ? reliabilityScore(wicketsSD, wicketsMean) : null;
+      const components = [battingConsistency, bowlingConsistency].filter((value): value is number => value !== null);
+      const overallConsistency = components.length ? Math.round(components.reduce((sum, value) => sum + value, 0) / components.length) : null;
+      return {
+        id: entry.id, name: entry.displayName, imageUrl: entry.imageUrl, games: matches.length,
+        runs: entry.allTime.runs, wickets: entry.allTime.wickets,
+        runsMean, runsSD, battingConsistency, wicketsMean, wicketsSD, bowlingConsistency, overallConsistency,
+      };
+    }).filter((row): row is NonNullable<typeof row> => row !== null && row.overallConsistency !== null);
+    return rows;
+  }, [directoryProfiles]);
+  const mostConsistentBatter = useMemo(() => {
+    const contenders = consistencyPlayers.filter((item) => item.battingConsistency !== null);
     if (!contenders.length) return null;
-    return [...contenders].sort((a, b) => (a.gamesToRuns as number) - (b.gamesToRuns as number) || b.runs - a.runs)[0];
-  }, [projectionPlayers]);
-  const wicketsRaceLeader = useMemo(() => {
-    const contenders = projectionPlayers.filter((item) => item.gamesToWickets !== null);
+    return [...contenders].sort((a, b) => (b.battingConsistency as number) - (a.battingConsistency as number) || b.games - a.games)[0];
+  }, [consistencyPlayers]);
+  const mostConsistentBowler = useMemo(() => {
+    const contenders = consistencyPlayers.filter((item) => item.bowlingConsistency !== null);
     if (!contenders.length) return null;
-    return [...contenders].sort((a, b) => (a.gamesToWickets as number) - (b.gamesToWickets as number) || b.wickets - a.wickets)[0];
-  }, [projectionPlayers]);
-  const sortedProjectionPlayers = useMemo(() => {
-    const rows = [...projectionPlayers];
-    const raceValue = (value: number | null) => value === null ? Infinity : value;
-    if (projectionSort === "runs") return rows.sort((a, b) => b.runs - a.runs);
-    if (projectionSort === "wickets") return rows.sort((a, b) => b.wickets - a.wickets);
-    if (projectionSort === "games") return rows.sort((a, b) => b.games - a.games);
-    if (projectionSort === "runsRace") return rows.sort((a, b) => raceValue(a.gamesToRuns) - raceValue(b.gamesToRuns) || b.runs - a.runs);
-    if (projectionSort === "wicketsRace") return rows.sort((a, b) => raceValue(a.gamesToWickets) - raceValue(b.gamesToWickets) || b.wickets - a.wickets);
-    return rows.sort((a, b) => b.contribution - a.contribution);
-  }, [projectionPlayers, projectionSort]);
+    return [...contenders].sort((a, b) => (b.bowlingConsistency as number) - (a.bowlingConsistency as number) || b.games - a.games)[0];
+  }, [consistencyPlayers]);
+  const sortedConsistencyPlayers = useMemo(() => {
+    const rows = [...consistencyPlayers];
+    const value = (item: number | null) => item === null ? -1 : item;
+    if (consistencySort === "batting") return rows.sort((a, b) => value(b.battingConsistency) - value(a.battingConsistency) || b.games - a.games);
+    if (consistencySort === "bowling") return rows.sort((a, b) => value(b.bowlingConsistency) - value(a.bowlingConsistency) || b.games - a.games);
+    if (consistencySort === "games") return rows.sort((a, b) => b.games - a.games);
+    return rows.sort((a, b) => (b.overallConsistency as number) - (a.overallConsistency as number) || b.games - a.games);
+  }, [consistencyPlayers, consistencySort]);
   const followingIds = useMemo(() => new Set(follows.filter((item) => item.followerProfileId === profile?.id).map((item) => item.followingProfileId)), [follows, profile]);
   const searchResults = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -1005,7 +1020,7 @@ export default function Home() {
     { id: "performance", label: "Team Stats", mobileLabel: "Stats", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4v16h16"/><path d="M7.5 14l3.2-3.3 3 3L21 7.5"/></svg> },
     { id: "fixtures", label: "Games & Scores", mobileLabel: "Games", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.3"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.3"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.3"/></svg> },
     { id: "leaderboards", label: "Rankings", mobileLabel: "Rankings", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1.4A3.6 3.6 0 0 0 7.6 11M17 6h3v1.4A3.6 3.6 0 0 1 16.4 11"/><path d="M12 13v3.5M8.5 21h7M9.6 21l.6-4h3.6l.6 4"/></svg> },
-    { id: "projections", label: "Projections", mobileLabel: "Milestones", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l6-6 4 4 8-9"/><path d="M15 6h6v6"/></svg> },
+    { id: "consistency", label: "Consistency", mobileLabel: "Consistency", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 12h4l2-6 3 12 2-9 1.5 3h6.5"/></svg> },
     { id: "team", label: "Team Admin", mobileLabel: "Team", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7.5 3v5.6c0 4.3-3.2 7.5-7.5 9.4-4.3-1.9-7.5-5.1-7.5-9.4V6z"/><path d="M9.2 12.1l1.9 1.9 3.8-3.9"/></svg> },
   ];
 
@@ -1247,29 +1262,29 @@ export default function Home() {
           </> : loading ? <section className="ranking-empty"><span>♜</span><h2>Loading rankings…</h2></section> : <section className="ranking-empty"><span>↗</span><h2>The board is ready for your roster</h2><p>Add the season roster in Team Admin. Player statistics will remain at zero until completed scorecards are imported.</p><button onClick={() => navigateTo("team")}>Open Team Admin</button></section>}
         </>}
 
-        {view === "projections" && <>
-          <div className="page-intro"><div><p className="overline">MILESTONE PROJECTIONS</p><h1>The race to 1,000 runs and 100 wickets.</h1><p>Projected from all-time per-game averages. Players need at least 5 career games to qualify.</p></div></div>
+        {view === "consistency" && <>
+          <div className="page-intro"><div><p className="overline">CONSISTENCY BOARD</p><h1>Who performs the same, week after week.</h1><p>Ranked by a reliability score built from the spread of each player&apos;s runs and wickets across every recorded game. Players need at least 5 career games to qualify.</p></div></div>
           <section className="projection-spotlight-grid">
             <article className="projection-spotlight-card runs-race">
-              <header><span>RACE TO 1,000 RUNS</span></header>
-              {runsRaceLeader ? <>
-                <div className="projection-spotlight-player"><Initials name={runsRaceLeader.name} large /><div><strong>{runsRaceLeader.name}</strong><small>{runsRaceLeader.games} games · {Math.round(runsRaceLeader.runsPerGame * 10) / 10} runs/game</small></div></div>
-                <div className="projection-progress"><i><em style={{ width: `${Math.min(100, runsRaceLeader.runs / RUNS_MILESTONE * 100)}%` }} /></i><span>{runsRaceLeader.runs.toLocaleString("en-ZA")} / {RUNS_MILESTONE.toLocaleString("en-ZA")} runs</span></div>
-                <p>{runsRaceLeader.runs >= RUNS_MILESTONE ? "Already past 1,000 career runs." : `Projected in ${runsRaceLeader.gamesToRuns} more game${runsRaceLeader.gamesToRuns === 1 ? "" : "s"} at their current pace.`}</p>
-              </> : <div className="panel-empty">No qualifying player has a scoring pace yet to project this milestone.</div>}
+              <header><span>MOST RELIABLE BATTER</span></header>
+              {mostConsistentBatter ? <>
+                <div className="projection-spotlight-player"><Initials name={mostConsistentBatter.name} src={mostConsistentBatter.imageUrl} large /><div><strong>{mostConsistentBatter.name}</strong><small>{mostConsistentBatter.games} games · avg {Math.round(mostConsistentBatter.runsMean * 10) / 10} runs</small></div></div>
+                <div className="projection-progress"><i><em style={{ width: `${mostConsistentBatter.battingConsistency}%` }} /></i><span>{mostConsistentBatter.battingConsistency}% batting consistency</span></div>
+                <p>Runs swing by an average of {Math.round(mostConsistentBatter.runsSD * 10) / 10} from their {Math.round(mostConsistentBatter.runsMean * 10) / 10} run average — the tightest spread in the squad.</p>
+              </> : <div className="panel-empty">Need more qualifying players (5+ games) to rank batting reliability.</div>}
             </article>
             <article className="projection-spotlight-card wickets-race">
-              <header><span>RACE TO 100 WICKETS</span></header>
-              {wicketsRaceLeader ? <>
-                <div className="projection-spotlight-player"><Initials name={wicketsRaceLeader.name} large /><div><strong>{wicketsRaceLeader.name}</strong><small>{wicketsRaceLeader.games} games · {Math.round(wicketsRaceLeader.wicketsPerGame * 100) / 100} wkts/game</small></div></div>
-                <div className="projection-progress"><i><em style={{ width: `${Math.min(100, wicketsRaceLeader.wickets / WICKETS_MILESTONE * 100)}%` }} /></i><span>{wicketsRaceLeader.wickets} / {WICKETS_MILESTONE} wickets</span></div>
-                <p>{wicketsRaceLeader.wickets >= WICKETS_MILESTONE ? "Already past 100 career wickets." : `Projected in ${wicketsRaceLeader.gamesToWickets} more game${wicketsRaceLeader.gamesToWickets === 1 ? "" : "s"} at their current pace.`}</p>
-              </> : <div className="panel-empty">No qualifying player has a wicket-taking pace yet to project this milestone.</div>}
+              <header><span>MOST RELIABLE BOWLER</span></header>
+              {mostConsistentBowler ? <>
+                <div className="projection-spotlight-player"><Initials name={mostConsistentBowler.name} src={mostConsistentBowler.imageUrl} large /><div><strong>{mostConsistentBowler.name}</strong><small>{mostConsistentBowler.games} games · avg {Math.round(mostConsistentBowler.wicketsMean * 100) / 100} wkts</small></div></div>
+                <div className="projection-progress"><i><em style={{ width: `${mostConsistentBowler.bowlingConsistency}%` }} /></i><span>{mostConsistentBowler.bowlingConsistency}% bowling consistency</span></div>
+                <p>Wickets swing by an average of {Math.round(mostConsistentBowler.wicketsSD * 100) / 100} from their {Math.round(mostConsistentBowler.wicketsMean * 100) / 100} wicket average — the tightest spread in the squad.</p>
+              </> : <div className="panel-empty">Need more qualifying bowlers (5+ games, 1+ career wicket) to rank bowling reliability.</div>}
             </article>
           </section>
           <section className="ranking-table-card">
-            <header><div><p className="overline">FULL BOARD</p><h2>Every qualifying player, ranked</h2><span>{sortedProjectionPlayers.length} player{sortedProjectionPlayers.length === 1 ? "" : "s"} with 5+ career games</span></div><div className="ranking-metric-select"><label><span>Sort by</span><select aria-label="Sort projections board" value={projectionSort} onChange={(event) => setProjectionSort(event.target.value as typeof projectionSort)}><option value="impact">Overall impact</option><option value="runs">Runs</option><option value="wickets">Wickets</option><option value="games">Games</option><option value="runsRace">Closest to 1,000 runs</option><option value="wicketsRace">Closest to 100 wickets</option></select></label></div></header>
-            {sortedProjectionPlayers.length ? <div className="ranking-table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>G</th><th>Runs</th><th>R/G</th><th>Wkts</th><th>W/G</th><th>→1000R</th><th>→100W</th><th>Impact</th></tr></thead><tbody>{sortedProjectionPlayers.map((player, index) => { const target = player.linkedOwnerId ?? player.playerProfileId ?? player.id; return <tr key={player.id}><td><span className={index < 3 ? `medal medal-${index + 1}` : "medal"}>{index + 1}</span></td><td><button onClick={() => openPublicPlayer(target)}><Initials name={player.name} /><span><b>{player.name}</b></span></button></td><td>{player.games}</td><td>{player.runs}</td><td>{Math.round(player.runsPerGame * 10) / 10}</td><td>{player.wickets}</td><td>{Math.round(player.wicketsPerGame * 100) / 100}</td><td>{player.runs >= RUNS_MILESTONE ? "Reached" : player.gamesToRuns ?? "—"}</td><td>{player.wickets >= WICKETS_MILESTONE ? "Reached" : player.gamesToWickets ?? "—"}</td><td>{player.contribution > 0 ? "+" : ""}{player.contribution}</td></tr>; })}</tbody></table></div> : <div className="ranking-table-empty"><span>⌕</span><strong>No players qualify yet</strong><span>Players need at least 5 career games to appear on the projections board.</span></div>}
+            <header><div><p className="overline">FULL BOARD</p><h2>Every qualifying player, ranked</h2><span>{sortedConsistencyPlayers.length} player{sortedConsistencyPlayers.length === 1 ? "" : "s"} with 5+ career games</span></div><div className="ranking-metric-select"><label><span>Sort by</span><select aria-label="Sort consistency board" value={consistencySort} onChange={(event) => setConsistencySort(event.target.value as typeof consistencySort)}><option value="overall">Overall consistency</option><option value="batting">Batting consistency</option><option value="bowling">Bowling consistency</option><option value="games">Games played</option></select></label></div></header>
+            {sortedConsistencyPlayers.length ? <div className="ranking-table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>G</th><th>Avg R</th><th>R SD</th><th>Bat %</th><th>Avg W</th><th>W SD</th><th>Bowl %</th><th>Overall</th></tr></thead><tbody>{sortedConsistencyPlayers.map((player, index) => <tr key={player.id}><td><span className={index < 3 ? `medal medal-${index + 1}` : "medal"}>{index + 1}</span></td><td><button onClick={() => openPublicPlayer(player.id)}><Initials name={player.name} src={player.imageUrl} /><span><b>{player.name}</b></span></button></td><td>{player.games}</td><td>{Math.round(player.runsMean * 10) / 10}</td><td>{Math.round(player.runsSD * 10) / 10}</td><td>{player.battingConsistency ?? "—"}</td><td>{Math.round(player.wicketsMean * 100) / 100}</td><td>{Math.round(player.wicketsSD * 100) / 100}</td><td>{player.bowlingConsistency ?? "—"}</td><td className="active">{player.overallConsistency}%</td></tr>)}</tbody></table></div> : <div className="ranking-table-empty"><span>⌕</span><strong>No players qualify yet</strong><span>Players need at least 5 career games to appear on the consistency board.</span></div>}
           </section>
         </>}
       </section>

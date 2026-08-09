@@ -477,7 +477,7 @@ img,video,canvas,svg{max-width:100%}
 .ranking-metric-select select:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(240,90,40,.12)}
 @media(max-width:760px){.ranking-metric-select{max-width:100%}.ranking-metric-select select{height:46px;font-size:16px}}
 
-/* ===== Projections page ===== */
+/* ===== Consistency page (spotlight cards reused for batting/bowling reliability) ===== */
 .projection-spotlight-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}
 .projection-spotlight-card{background:var(--navy);color:#fff;border-radius:12px;padding:22px;display:grid;gap:14px;align-content:start;min-height:190px}
 .projection-spotlight-card.wickets-race{background:#211515}
