@@ -313,6 +313,15 @@ img,video,canvas,svg{max-width:100%}
 .season-context-bar>strong{min-width:72px;font-size:30px;line-height:1;color:var(--orange);text-align:right}.season-context-bar>strong small{display:block;margin-top:5px;font-size:6px;line-height:1.3;letter-spacing:.65px;text-transform:uppercase;color:var(--muted)}
 .season-current-pill{display:grid;gap:4px;min-width:185px;padding:10px 12px;border:1px solid rgba(215,239,72,.5);background:rgba(215,239,72,.08);border-radius:5px;text-align:right}.season-current-pill span{font-size:6px;letter-spacing:1px;color:var(--lime);font-weight:900}.season-current-pill strong{font-size:11px;color:#fff}
 .team-admin-import-top{margin-top:0;margin-bottom:18px;border-left-width:6px;box-shadow:0 8px 22px rgba(7,30,43,.09)}
+.import-instructions{grid-column:1/-1;border:1px solid var(--line);border-radius:5px;background:#f7f8f5;margin:2px 0 4px}
+.import-instructions summary{list-style:none;cursor:pointer;padding:10px 13px;font-size:9px;font-weight:900;color:var(--navy);display:flex;align-items:center;gap:6px}
+.import-instructions summary::-webkit-details-marker{display:none}
+.import-instructions summary:before{content:"?";width:16px;height:16px;border-radius:50%;background:var(--orange);color:#fff;display:inline-grid;place-items:center;font-size:9px;flex:0 0 auto}
+.import-instructions ol{margin:0;padding:0 15px 13px 30px;display:grid;gap:6px}
+.import-instructions li{font-size:9px;line-height:1.5;color:var(--muted)}
+.import-instructions b{color:var(--navy)}
+.import-instructions a{color:var(--orange);font-weight:800;text-decoration:none}
+.import-instructions a:hover{text-decoration:underline}
 .performance-season-filter{border:2px solid var(--orange);border-radius:6px;background:#fff4ee;padding:8px}.performance-season-filter>span{color:#9d3c1c!important}.performance-season-filter select{min-width:210px;font-weight:900}
 
 @media(max-width:1120px){.season-context-bar{grid-template-columns:1fr}.season-context-bar>strong{text-align:left}.season-context-controls{grid-template-columns:repeat(2,minmax(150px,1fr))}}
