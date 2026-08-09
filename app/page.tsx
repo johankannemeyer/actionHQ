@@ -551,7 +551,43 @@ export default function Home() {
   const sampleStdDev = (values: number[], mean: number) => values.length ? Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length) : 0;
   const reliabilityScore = (sd: number, mean: number) => mean > 0 ? Math.max(0, Math.min(100, Math.round(100 - (sd / mean) * 100))) : null;
   const consistencyPlayers = useMemo(() => {
-    const rows = directoryProfiles.map((entry) => {
+    // Ball-by-ball aggregates (extras conceded, dot balls faced, dot balls bowled) per canonical player,
+    // matched against every recorded delivery via the exact scorecard name(s) that player has been claimed under.
+    const deliveryStats = new Map<number, { extras: number; bowledGames: number; dotsFaced: number; battedGames: number; dotsBowled: number }>();
+    for (const entry of directoryProfiles) {
+      const matches = entry.matches ?? [];
+      if (matches.length < CONSISTENCY_MIN_GAMES) continue;
+      const aliasKeys = new Set(matches.map((item) => playerKey(item.playerName)).filter(Boolean));
+      if (!aliasKeys.size) continue;
+      let extras = 0, bowledGames = 0, dotsFaced = 0, battedGames = 0, dotsBowled = 0;
+      for (const match of activities) {
+        let matchExtras = 0, matchDotsBowled = 0, bowledHere = false, matchDotsFaced = 0, battedHere = false;
+        for (const innings of match.innings ?? []) {
+          for (const pair of innings.pairs ?? []) {
+            for (const over of pair.overs ?? []) {
+              if (aliasKeys.has(playerKey(over.bowlerName))) {
+                bowledHere = true;
+                for (const delivery of over.deliveries ?? []) {
+                  if (isExtraOutcome(delivery.outcome)) matchExtras += 1;
+                  else if (deliveryRunValue(delivery.outcome) === 0) matchDotsBowled += 1;
+                }
+              }
+              for (const delivery of over.deliveries ?? []) {
+                if (aliasKeys.has(playerKey(delivery.batterName))) {
+                  battedHere = true;
+                  if (deliveryRunValue(delivery.outcome) === 0) matchDotsFaced += 1;
+                }
+              }
+            }
+          }
+        }
+        if (bowledHere) { extras += matchExtras; dotsBowled += matchDotsBowled; bowledGames += 1; }
+        if (battedHere) { dotsFaced += matchDotsFaced; battedGames += 1; }
+      }
+      deliveryStats.set(entry.id, { extras, bowledGames, dotsFaced, battedGames, dotsBowled });
+    }
+
+    const base = directoryProfiles.map((entry) => {
       const matches = entry.matches ?? [];
       if (matches.length < CONSISTENCY_MIN_GAMES) return null;
       const runsSamples = matches.map((item) => item.runs);
@@ -562,16 +598,46 @@ export default function Home() {
       const wicketsMean = average(wicketsSamples);
       const wicketsSD = sampleStdDev(wicketsSamples, wicketsMean);
       const bowlingConsistency = entry.allTime.wickets > 0 ? reliabilityScore(wicketsSD, wicketsMean) : null;
-      const components = [battingConsistency, bowlingConsistency].filter((value): value is number => value !== null);
-      const overallConsistency = components.length ? Math.round(components.reduce((sum, value) => sum + value, 0) / components.length) : null;
+      if (battingConsistency === null && bowlingConsistency === null) return null;
+      const delivery = deliveryStats.get(entry.id);
+      const extrasMean = delivery && delivery.bowledGames > 0 ? delivery.extras / delivery.bowledGames : null;
+      const dotsFacedMean = delivery && delivery.battedGames > 0 ? delivery.dotsFaced / delivery.battedGames : null;
+      const dotsBowledMean = delivery && delivery.bowledGames > 0 ? delivery.dotsBowled / delivery.bowledGames : null;
       return {
         id: entry.id, name: entry.displayName, imageUrl: entry.imageUrl, games: matches.length,
         runs: entry.allTime.runs, wickets: entry.allTime.wickets,
-        runsMean, runsSD, battingConsistency, wicketsMean, wicketsSD, bowlingConsistency, overallConsistency,
+        runsMean, runsSD, battingConsistency, wicketsMean, wicketsSD, bowlingConsistency,
+        extrasMean, dotsFacedMean, dotsBowledMean,
       };
-    }).filter((row): row is NonNullable<typeof row> => row !== null && row.overallConsistency !== null);
-    return rows;
-  }, [directoryProfiles]);
+    }).filter((row): row is NonNullable<typeof row> => row !== null);
+
+    // Peer-relative discipline/pressure scores (0-100), calibrated against the qualifying field itself:
+    // extras conceded and dot balls faced reward the LOWEST average, dot balls bowled rewards the HIGHEST.
+    const scoreLowerIsBetter = (values: number[], value: number | null) => {
+      if (value === null || !values.length) return null;
+      const min = Math.min(...values), max = Math.max(...values);
+      if (max === min) return 100;
+      return Math.round(100 - ((value - min) / (max - min)) * 100);
+    };
+    const scoreHigherIsBetter = (values: number[], value: number | null) => {
+      if (value === null || !values.length) return null;
+      const min = Math.min(...values), max = Math.max(...values);
+      if (max === min) return 100;
+      return Math.round(((value - min) / (max - min)) * 100);
+    };
+    const extrasField = base.map((row) => row.extrasMean).filter((value): value is number => value !== null);
+    const dotsFacedField = base.map((row) => row.dotsFacedMean).filter((value): value is number => value !== null);
+    const dotsBowledField = base.map((row) => row.dotsBowledMean).filter((value): value is number => value !== null);
+
+    return base.map((row) => {
+      const extrasDiscipline = scoreLowerIsBetter(extrasField, row.extrasMean);
+      const dotsFacedDiscipline = scoreLowerIsBetter(dotsFacedField, row.dotsFacedMean);
+      const dotsBowledPressure = scoreHigherIsBetter(dotsBowledField, row.dotsBowledMean);
+      const components = [row.battingConsistency, row.bowlingConsistency, extrasDiscipline, dotsFacedDiscipline, dotsBowledPressure].filter((value): value is number => value !== null);
+      const overallConsistency = components.length ? Math.round(components.reduce((sum, value) => sum + value, 0) / components.length) : null;
+      return { ...row, extrasDiscipline, dotsFacedDiscipline, dotsBowledPressure, overallConsistency };
+    }).filter((row) => row.overallConsistency !== null);
+  }, [directoryProfiles, activities]);
   const mostConsistentBatter = useMemo(() => {
     const contenders = consistencyPlayers.filter((item) => item.battingConsistency !== null);
     if (!contenders.length) return null;
@@ -1263,7 +1329,7 @@ export default function Home() {
         </>}
 
         {view === "consistency" && <>
-          <div className="page-intro"><div><p className="overline">CONSISTENCY BOARD</p><h1>Who performs the same, week after week.</h1><p>Ranked by a reliability score built from the spread of each player&apos;s runs and wickets across every recorded game. Players need at least 5 career games to qualify.</p></div></div>
+          <div className="page-intro"><div><p className="overline">CONSISTENCY BOARD</p><h1>Who performs the same, week after week.</h1><p>Ranked by a reliability score built from the spread of each player&apos;s runs and wickets, plus bowling discipline and dot-ball pressure from every recorded delivery. Players need at least 5 career games to qualify.</p></div></div>
           <section className="projection-spotlight-grid">
             <article className="projection-spotlight-card runs-race">
               <header><span>MOST RELIABLE BATTER</span></header>
@@ -1284,7 +1350,8 @@ export default function Home() {
           </section>
           <section className="ranking-table-card">
             <header><div><p className="overline">FULL BOARD</p><h2>Every qualifying player, ranked</h2><span>{sortedConsistencyPlayers.length} player{sortedConsistencyPlayers.length === 1 ? "" : "s"} with 5+ career games</span></div><div className="ranking-metric-select"><label><span>Sort by</span><select aria-label="Sort consistency board" value={consistencySort} onChange={(event) => setConsistencySort(event.target.value as typeof consistencySort)}><option value="overall">Overall consistency</option><option value="batting">Batting consistency</option><option value="bowling">Bowling consistency</option><option value="games">Games played</option></select></label></div></header>
-            {sortedConsistencyPlayers.length ? <div className="ranking-table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>G</th><th>Avg R</th><th>R SD</th><th>Bat %</th><th>Avg W</th><th>W SD</th><th>Bowl %</th><th>Overall</th></tr></thead><tbody>{sortedConsistencyPlayers.map((player, index) => <tr key={player.id}><td><span className={index < 3 ? `medal medal-${index + 1}` : "medal"}>{index + 1}</span></td><td><button onClick={() => openPublicPlayer(player.id)}><Initials name={player.name} src={player.imageUrl} /><span><b>{player.name}</b></span></button></td><td>{player.games}</td><td>{Math.round(player.runsMean * 10) / 10}</td><td>{Math.round(player.runsSD * 10) / 10}</td><td>{player.battingConsistency ?? "—"}</td><td>{Math.round(player.wicketsMean * 100) / 100}</td><td>{Math.round(player.wicketsSD * 100) / 100}</td><td>{player.bowlingConsistency ?? "—"}</td><td className="active">{player.overallConsistency}%</td></tr>)}</tbody></table></div> : <div className="ranking-table-empty"><span>⌕</span><strong>No players qualify yet</strong><span>Players need at least 5 career games to appear on the consistency board.</span></div>}
+            {sortedConsistencyPlayers.length ? <div className="ranking-table-scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>G</th><th>Avg R</th><th>R SD</th><th>Bat %</th><th>Avg W</th><th>W SD</th><th>Bowl %</th><th>Avg Ex</th><th>Dots Faced</th><th>Dots Bowled</th><th>Overall</th></tr></thead><tbody>{sortedConsistencyPlayers.map((player, index) => <tr key={player.id}><td><span className={index < 3 ? `medal medal-${index + 1}` : "medal"}>{index + 1}</span></td><td><button onClick={() => openPublicPlayer(player.id)}><Initials name={player.name} src={player.imageUrl} /><span><b>{player.name}</b></span></button></td><td>{player.games}</td><td>{Math.round(player.runsMean * 10) / 10}</td><td>{Math.round(player.runsSD * 10) / 10}</td><td>{player.battingConsistency ?? "—"}</td><td>{Math.round(player.wicketsMean * 100) / 100}</td><td>{Math.round(player.wicketsSD * 100) / 100}</td><td>{player.bowlingConsistency ?? "—"}</td><td>{player.extrasMean !== null ? Math.round(player.extrasMean * 10) / 10 : "—"}</td><td>{player.dotsFacedMean !== null ? Math.round(player.dotsFacedMean * 10) / 10 : "—"}</td><td>{player.dotsBowledMean !== null ? Math.round(player.dotsBowledMean * 10) / 10 : "—"}</td><td className="active">{player.overallConsistency}%</td></tr>)}</tbody></table></div> : <div className="ranking-table-empty"><span>⌕</span><strong>No players qualify yet</strong><span>Players need at least 5 career games to appear on the consistency board.</span></div>}
+            <footer><span><b>G</b> Games</span><span><b>Avg R</b> Runs average</span><span><b>R SD</b> Runs std. deviation</span><span><b>Bat %</b> Batting consistency</span><span><b>Avg W</b> Wickets average</span><span><b>W SD</b> Wickets std. deviation</span><span><b>Bowl %</b> Bowling consistency</span><span><b>Avg Ex</b> Extras conceded per game (lower is better)</span><span><b>Dots Faced</b> Dot balls faced per game (lower is better)</span><span><b>Dots Bowled</b> Dot balls bowled per game (higher is better)</span><span><b>Overall</b> Blended reliability score</span></footer>
           </section>
         </>}
       </section>
