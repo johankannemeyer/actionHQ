@@ -1272,11 +1272,6 @@ export default function Home() {
       <aside className="sidebar">
         <nav aria-label="Main navigation">{navItems.map((item) => <button key={item.id} className={`${view === item.id ? "active" : ""}${item.id === "team" ? " admin-nav" : ""}`} onClick={() => navigateTo(item.id)}><span>{item.icon}</span>{item.label}</button>)}</nav>
         <div className="side-divider" />
-        <p className="side-label side-label-count"><span>TEAM PLAYER PROFILES</span><b>{teamDirectory.length}</b></p>
-        <div className="club-stack page-stack">{teamDirectory.map((item) => <button key={`player-${item.id}`} className={`club-link ${item.id === viewedProfileId && view === "player" ? "selected" : ""}`} onClick={() => openPublicPlayer(item.id)}><Initials name={item.displayName} src={item.imageUrl} /><span><b>{item.displayName}</b><small>Player profile · {item.allTime.linkedMatches} scorecards</small></span></button>)}</div>
-        {!teamDirectory.length && <button className="club-link empty" onClick={() => navigateTo("team")}>Open roster management</button>}
-        <button className="add-club" onClick={() => navigateTo("players")}>View all {teamDirectory.length || "team"} player profiles →</button>
-        <div className="sidebar-promo"><span>TEAM ANALYSIS</span><strong>See how the team scores, defends and wins.</strong><button onClick={() => navigateTo("performance")}>Open team stats</button></div>
         <button className="side-foot" onClick={() => navigateTo("privacy")}>Privacy · POPIA · Support<br />Made for the indoor game 🇿🇦</button>
       </aside>
 
