@@ -174,15 +174,27 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   const dismissalCounts = new Map<string, number>();
   const teamRunTypes = { dots: 0, ones: 0, twos: 0, threes: 0, fours: 0, fives: 0, sixes: 0, sevensPlus: 0, dismissals: 0 };
   const teamExtras = { wides: 0, noBalls: 0 };
+  type MatchWicketsExtras = { wicketsTaken: number; wicketsLost: number; extrasFor: number; extrasAgainst: number };
+  const matchStats = new Map<number, MatchWicketsExtras>();
+  const matchStat = (matchId: number) => {
+    const current = matchStats.get(matchId) ?? { wicketsTaken: 0, wicketsLost: 0, extrasFor: 0, extrasAgainst: 0 };
+    matchStats.set(matchId, current);
+    return current;
+  };
   for (const match of teamMatches) {
+    const stat = matchStat(match.id);
     for (const innings of match.innings ?? []) {
       const teamBatting = innings.battingTeam.toLowerCase() === teamName.toLowerCase();
       for (const pair of innings.pairs ?? []) {
         for (const over of pair.overs ?? []) {
           if (!teamBatting) {
             for (const delivery of over.deliveries ?? []) {
-              if (isWideOutcome(delivery.outcome)) teamExtras.wides += 1;
-              else if (isNoBallOutcome(delivery.outcome)) teamExtras.noBalls += 1;
+              if (isWideOutcome(delivery.outcome)) { teamExtras.wides += 1; stat.extrasAgainst += 1; }
+              else if (isNoBallOutcome(delivery.outcome)) { teamExtras.noBalls += 1; stat.extrasAgainst += 1; }
+            }
+          } else {
+            for (const delivery of over.deliveries ?? []) {
+              if (isWideOutcome(delivery.outcome) || isNoBallOutcome(delivery.outcome)) stat.extrasFor += 1;
             }
           }
           if (!teamBatting && over.bowlerName.trim()) {
@@ -191,6 +203,7 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
             bowler.bowlingBalls += over.deliveries?.length ?? 0;
             bowler.bowlingDots += (over.deliveries ?? []).filter((delivery) => deliveryRunValue(delivery.outcome) === 0).length;
             bowler.extras += (over.deliveries ?? []).filter((delivery) => isExtraOutcome(delivery.outcome)).length;
+            stat.wicketsTaken += over.wickets;
           }
           if (!teamBatting) continue;
           for (const delivery of over.deliveries ?? []) {
@@ -209,6 +222,7 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
             if (isDismissalOutcome(delivery.outcome)) {
               batter.dismissals += 1;
               teamRunTypes.dismissals += 1;
+              stat.wicketsLost += 1;
               const label = dismissalLabel(delivery.outcome);
               dismissalCounts.set(label, (dismissalCounts.get(label) ?? 0) + 1);
             }
@@ -249,6 +263,9 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
   const scoreDeviation = Math.sqrt(seasonScores.reduce((sum, score) => sum + (score - seasonAverage) ** 2, 0) / Math.max(1, seasonScores.length));
   const consistencyScore = Math.max(0, Math.round(100 - scoreDeviation / Math.max(1, seasonAverage) * 100));
   const seasonMaxScore = Math.max(...seasonScores, 1);
+  const matchWicketsExtras = analysed.map((match) => ({ ...match, ...(matchStats.get(match.id) ?? { wicketsTaken: 0, wicketsLost: 0, extrasFor: 0, extrasAgainst: 0 }) }));
+  const maxMatchWickets = Math.max(...matchWicketsExtras.flatMap((match) => [match.wicketsTaken, match.wicketsLost]), 1);
+  const maxMatchExtras = Math.max(...matchWicketsExtras.flatMap((match) => [match.extrasFor, match.extrasAgainst]), 1);
   const dismissalPalette = ["#ff4d0a", "#211515", "#8f6b5e", "#d38a6e", "#ffb69b", "#a99d96"];
   const dismissalEntries = [...dismissalCounts.entries()];
   const dismissalTotal = Math.max(1, dismissalEntries.reduce((sum, [, count]) => sum + count, 0));
@@ -287,6 +304,8 @@ function TeamPerformanceCharts({ teamName, matches, sortOrder }: { teamName: str
 
     <section className="team-pattern-grid">
       <article className="consistency-card"><header><div><p>TEAM SCORING CONSISTENCY</p><h2>{consistencyScore}% repeatability</h2><span>Average {Math.round(seasonAverage * 10) / 10} · deviation {Math.round(scoreDeviation * 10) / 10}</span></div><strong>{analysed.length}<small>GAMES</small></strong></header><div className="consistency-chart" role="img" aria-label={`${teamName} scoring consistency across ${analysed.length} matches`}>{analysed.map((match) => <i key={match.id} title={`Fixture ${match.fixtureId}: ${match.scored} scored`}><b>{match.scored}</b><em style={{ height: `${Math.max(5, match.scored / seasonMaxScore * 100)}%` }} /></i>)}</div></article>
+      <article className="wickets-trend-card"><header><div><p>WICKETS TAKEN VS LOST</p><h2>Per match breakdown</h2></div><div className="chart-legend"><i className="legend-taken" />Taken<i className="legend-lost" />Lost</div></header><div className="score-trend-chart" role="img" aria-label={`${teamName} wickets taken versus lost per match`}>{matchWicketsExtras.map((match) => <div className="score-chart-column" key={match.id} title={`${teamName} ${match.wicketsTaken} taken vs ${match.wicketsLost} lost against ${match.opponent}`}><div className="score-column-values"><b>{match.wicketsTaken}</b><small>{match.wicketsLost}</small></div><div className="score-column-bars"><i className="bar-taken" style={{ height: `${Math.max(4, match.wicketsTaken / maxMatchWickets * 100)}%` }} /><i className="bar-lost" style={{ height: `${Math.max(4, match.wicketsLost / maxMatchWickets * 100)}%` }} /></div></div>)}</div></article>
+      <article className="extras-trend-card"><header><div><p>EXTRAS: WE GET VS WE CONCEDE</p><h2>Per match breakdown</h2></div><div className="chart-legend"><i className="legend-extra-for" />We get<i className="legend-extra-against" />We concede</div></header><div className="score-trend-chart" role="img" aria-label={`${teamName} extras received versus conceded per match`}>{matchWicketsExtras.map((match) => <div className="score-chart-column" key={match.id} title={`${teamName} ${match.extrasFor} extras received vs ${match.extrasAgainst} conceded against ${match.opponent}`}><div className="score-column-values"><b>{match.extrasFor}</b><small>{match.extrasAgainst}</small></div><div className="score-column-bars"><i className="bar-extra-for" style={{ height: `${Math.max(4, match.extrasFor / maxMatchExtras * 100)}%` }} /><i className="bar-extra-against" style={{ height: `${Math.max(4, match.extrasAgainst / maxMatchExtras * 100)}%` }} /></div></div>)}</div></article>
       <article className="run-type-card"><header><div><p>TEAM RUN TYPES</p><h2>How the runs are built</h2></div><span>{runTypeTotal} outcomes</span></header><div><div className="team-run-donut" role="img" aria-label={`${teamName} run type distribution`} style={{ background: `conic-gradient(${runTypeGradient})` }}><span><strong>{Math.round((teamRunTypes.ones + teamRunTypes.twos + teamRunTypes.threes) / runTypeTotal * 100)}%</strong><small>ROTATION</small></span></div><div className="team-run-legend">{runTypeEntries.map((item) => <span key={item.label}><i style={{ background: item.color }} /><b>{item.label}</b><strong>{item.value}</strong><small>{Math.round(item.value / runTypeTotal * 100)}%</small></span>)}</div></div></article>
       <article className="wicket-pressure-card"><header><div><p>TEAM WICKET PRESSURE ANALYSIS</p><h2>Who creates the threat?</h2></div><span>Wickets and dot-ball pressure</span></header><div className="pressure-rank-list">{wicketPressure.length ? wicketPressure.map((player, index) => <div key={`${playerKey(player.name)}-${index}`}><b>{index + 1}</b><Initials name={player.name} /><span><strong>{player.name}</strong><small>{Math.round(player.bowlingDots / player.bowlingBalls * 100)}% dot balls · {player.extras} extras</small></span><em>{player.wickets}<small>WKTS</small></em></div>) : <div className="panel-empty">Bowling deliveries will appear after the next detailed scorecard import.</div>}</div></article>
       <article className="discipline-card"><header><div><p>BOWLING DISCIPLINE</p><h2>Wides &amp; no-balls conceded</h2></div><span>{gamesPlayed} game{gamesPlayed === 1 ? "" : "s"} tracked</span></header><div><div className="discipline-donut" role="img" aria-label={`${teamName} extras conceded breakdown`} style={{ background: `conic-gradient(${disciplineGradient})` }}><span><strong>{teamExtras.wides + teamExtras.noBalls}</strong><small>EXTRAS</small></span></div><div className="discipline-legend"><span><i style={{ background: "#f05a28" }} /><b>Wides</b><strong>{widesPerGame}/gm</strong><small>{teamExtras.wides} total</small></span><span><i style={{ background: "#071e2b" }} /><b>No balls</b><strong>{noBallsPerGame}/gm</strong><small>{teamExtras.noBalls} total</small></span></div></div></article>
