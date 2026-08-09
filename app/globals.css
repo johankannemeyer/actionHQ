@@ -33,14 +33,15 @@
 
 .page-stack{max-height:265px;overflow:auto;margin-top:8px;padding-right:3px}.club-link.selected{background:#e6ece9;border-radius:5px}.squad-actions{display:flex!important;gap:6px}.squad-actions button{border:1px solid #b4bfbb;background:transparent;padding:6px 8px;font-size:8px;white-space:nowrap;cursor:pointer}.squad-actions button:last-child:not(:first-child){border-color:var(--orange);color:var(--orange)}
 .directory-summary{display:grid;grid-template-columns:1fr .7fr 1fr auto;gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:16px}.directory-summary>div{background:white;padding:15px;display:grid;gap:6px}.directory-summary span{font-size:7px;letter-spacing:1px;color:var(--muted);font-weight:900}.directory-summary strong{font-size:15px;color:var(--navy)}.directory-summary>button{border:0;background:var(--navy);color:white;padding:0 16px;font-size:8px;font-weight:900;cursor:pointer}.player-directory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.player-directory-card{border:1px solid var(--line);background:white;padding:0;text-align:left;cursor:pointer;overflow:hidden;border-radius:7px;color:var(--ink);box-shadow:0 2px 6px rgba(22,42,50,.04)}.player-directory-card:hover{border-color:#aab8b3;transform:translateY(-1px)}.directory-card-head{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:16px}
-.directory-card-fingerprint{width:56px;height:56px;flex:none;display:grid;place-items:center;border-radius:50%}
-.directory-card-fingerprint,.directory-card-fingerprint>i,.directory-card-fingerprint>i>i,.directory-card-fingerprint>i>i>i{border-radius:50%;display:grid;place-items:center}
-.directory-card-fingerprint,.directory-card-fingerprint>i{width:56px;height:56px}
-.directory-card-fingerprint>i>i{width:41px;height:41px;background:#fff!important}
-.directory-card-fingerprint>i>i>i{width:27px;height:27px;background:#fbfaf7!important;position:relative}
-.directory-card-fingerprint>i>i>i:after{content:"";position:absolute;inset:6px;border-radius:50%;background:#fff}
-.directory-card-fingerprint .ring-bowling,.directory-card-fingerprint .ring-impact{background:var(--ring)!important}
-.directory-card-fingerprint span{position:relative;z-index:1;display:grid;place-items:center}
+.directory-card-fingerprint{width:56px;height:56px;flex:none;position:relative}
+.directory-card-fingerprint svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
+.directory-card-fingerprint circle{fill:none}
+.directory-card-fingerprint .dcf-track{stroke:#f0ede8;stroke-width:2.6}
+.directory-card-fingerprint .dcf-value{stroke-width:2.6;stroke-linecap:round;transition:stroke-dasharray .4s ease}
+.directory-card-fingerprint .dcf-batting{stroke:var(--orange)}
+.directory-card-fingerprint .dcf-bowling{stroke:#c7d93a}
+.directory-card-fingerprint .dcf-impact{stroke:var(--navy)}
+.directory-card-fingerprint strong{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;font-weight:900;color:var(--navy)}
 .directory-card-fingerprint strong{font-size:11px;font-weight:900;color:var(--navy)}.directory-card-head .avatar-large{width:58px;height:58px;font-size:16px}.directory-card-head>span{display:grid;gap:4px;min-width:0}.directory-card-head em{width:max-content;font-size:6px;letter-spacing:.7px;font-style:normal;font-weight:900;padding:4px 6px}.directory-card-head em.registered{color:var(--green);background:#e4f2e8}.directory-card-head em.ready{color:#98650c;background:#fff2d9}.directory-card-head strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.directory-card-head small{font-size:8px;color:var(--muted)}.directory-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.directory-stats span{display:grid;gap:3px;padding:10px 6px;border-right:1px solid var(--line);text-align:center}.directory-stats span:last-child{border:0}.directory-stats b{font-size:15px}.directory-stats small{font-size:6px;color:var(--muted);font-weight:900}.directory-card-foot{display:flex;justify-content:space-between;gap:10px;padding:11px 14px;font-size:7px}.directory-card-foot span{color:var(--muted)}.directory-card-foot b{color:var(--orange)}
 .profile-form-panel{background:white;border:1px solid var(--line);padding:20px;margin-top:14px}.profile-form-bars{height:180px;display:flex;align-items:stretch;gap:9px;border-bottom:1px solid var(--line);padding:6px 8px 0}.profile-form-bars>div{flex:1;display:grid;grid-template-rows:auto 1fr;gap:8px;min-width:0}.profile-form-bars>div>span{display:grid;text-align:center;gap:2px}.profile-form-bars>div>span b{font-size:10px}.profile-form-bars>div>span small{font-size:6px;color:var(--muted)}.profile-form-bars i{height:100%;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(to top,#f0f3ef 1px,transparent 1px);background-size:100% 25%;font-style:normal}.profile-form-bars i em{display:block;width:68%;min-height:12px;background:var(--navy)}.profile-form-bars i em.positive{background:var(--green)}.profile-form-bars i em.negative{background:var(--orange)}
 @media(max-width:760px){.mobile-nav{grid-template-columns:repeat(6,1fr)}.directory-summary{grid-template-columns:1fr 1fr}.directory-summary>button{min-height:42px;grid-column:1/3}.player-directory-grid{grid-template-columns:1fr}.profile-form-bars{height:150px;gap:5px;padding-left:0;padding-right:0}}
@@ -359,11 +360,8 @@ img,video,canvas,svg{max-width:100%}
   .fixture-create-form label,.season-create-form label,.season-edit-form label,.form-grid label{font-size:9px}
   .directory-card-head strong{font-size:16px}
   .directory-card-head small,.directory-stats span,.directory-card-foot{font-size:9px}
-  .directory-card-fingerprint,.directory-card-fingerprint>i{width:46px;height:46px}
-  .directory-card-fingerprint>i>i{width:34px;height:34px}
-  .directory-card-fingerprint>i>i>i{width:22px;height:22px}
-  .directory-card-fingerprint>i>i>i:after{inset:4px}
-  .directory-card-fingerprint strong{font-size:9px}
+  .directory-card-fingerprint{width:46px;height:46px}
+  .directory-card-fingerprint strong{font-size:10px}
   .ranking-board-heading>div>span,.ranking-table-card>header>span,.ranking-insights-bridge span{font-size:10px;line-height:1.5}
   .ranking-metric-switch button span{font-size:8px}
   .ranking-table-scroll,.scorecard-stat-table,.skins-scorecard{max-width:100%}
