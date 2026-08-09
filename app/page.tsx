@@ -292,7 +292,7 @@ function playerKey(value: string) {
   return value.replace(/^\s*\d+\s*/, "").replace(/\bunknown\b/gi, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function PlayerPerformanceCharts({ player, activities, seasonFilter, onSeasonFilterChange, seasonNames, nameHeading = "h1" }: { player: PlayerProfile; activities: MatchActivity[]; seasonFilter: string; onSeasonFilterChange: (seasonId: string) => void; seasonNames: Record<number, string>; nameHeading?: "h1" | "h2" }) {
+function PlayerPerformanceCharts({ player, activities, seasonFilter, onSeasonFilterChange, seasonNames, nameHeading = "h1", teamImageUrl = null }: { player: PlayerProfile; activities: MatchActivity[]; seasonFilter: string; onSeasonFilterChange: (seasonId: string) => void; seasonNames: Record<number, string>; nameHeading?: "h1" | "h2"; teamImageUrl?: string | null }) {
   const [matchWindow, setMatchWindow] = useState<5 | 10 | 99>(10);
   const [formMetric, setFormMetric] = useState<"runs" | "wickets" | "impact">("impact");
   const [activeSlice, setActiveSlice] = useState("dots");
@@ -400,12 +400,13 @@ function PlayerPerformanceCharts({ player, activities, seasonFilter, onSeasonFil
   const displayName = player.displayName.replace(/^\s*\d+\s*/, "") || player.displayName;
   const teamName = player.seasons[0]?.teamName ?? "Action Cricket";
   const PlayerNameHeading = nameHeading;
+  const heroContributionAverage = player.allTime.games ? Math.round(player.allTime.contribution / player.allTime.games * 10) / 10 : 0;
 
   return <div className="smart-player-suite">
     <section className="smart-athlete-hero fifa-card">
       <div className="smart-athlete-portrait">{player.imageUrl ? <img src={player.imageUrl} alt={player.displayName} /> : <span className="smart-athlete-portrait-fallback">{displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>}<b className="smart-athlete-jersey">{jersey}</b></div>
-      <div className="smart-athlete-id"><small>{player.role || "All-rounder"}</small><PlayerNameHeading>{displayName}</PlayerNameHeading><em>{teamName}</em>
-        <div className="hero-stat-grid"><article><strong>{player.allTime.games}</strong><span>Games</span></article><article className="hot"><strong>{player.allTime.runs}</strong><span>Runs</span></article><article><strong>{player.allTime.wickets}</strong><span>Wickets</span></article><article className="hot"><strong>{player.allTime.contribution > 0 ? "+" : ""}{player.allTime.contribution}</strong><span>Impact</span></article></div>
+      <div className="smart-athlete-id"><small>{player.role || "All-rounder"}</small><PlayerNameHeading>{displayName}</PlayerNameHeading><em className="team-chip">{teamImageUrl ? <img src={teamImageUrl} alt={teamName} /> : <i />}<b>{teamName}</b></em>
+        <div className="hero-stat-grid"><article><strong>{player.allTime.games}</strong><span>Games</span></article><article className="hot"><strong>{player.allTime.runs}</strong><span>Runs</span></article><article><strong>{player.allTime.wickets}</strong><span>Wickets</span></article><article className="hot"><strong>{heroContributionAverage > 0 ? "+" : ""}{heroContributionAverage}</strong><span>Avg impact</span></article></div>
       </div>
       <div className="smart-athlete-fingerprint"><div className="fingerprint-rings"><i className="ring-batting" style={{ background: `conic-gradient(#ff4d0a ${battingScore}%, #3b302e ${battingScore}% 100%)` }}><i className="ring-bowling" style={{ "--ring": `conic-gradient(#d9ef45 ${bowlingScore}%, #403a33 ${bowlingScore}% 100%)` } as CSSProperties}><i className="ring-impact" style={{ "--ring": `conic-gradient(#ffffff ${impactScore}%, #514a45 ${impactScore}% 100%)` } as CSSProperties}><span><strong>{Math.round((battingScore + bowlingScore + impactScore) / 3)}</strong><small>PROFILE</small></span></i></i></i></div><div className="fingerprint-legend"><span><i />Batting <b>{battingScore}</b></span><span><i />Bowling <b>{bowlingScore}</b></span><span><i />Impact <b>{impactScore}</b></span></div></div>
     </section>
@@ -1272,7 +1273,7 @@ export default function Home() {
 
         {view === "player" && viewedProfile && <>
           <button className="back-link" onClick={() => navigateTo("players")}>← All player pages</button>
-          <PlayerPerformanceCharts player={viewedProfile} activities={activities} seasonFilter={playerSeasonFilter} onSeasonFilterChange={setPlayerSeasonFilter} seasonNames={seasonNames} />
+          <PlayerPerformanceCharts player={viewedProfile} activities={activities} seasonFilter={playerSeasonFilter} onSeasonFilterChange={setPlayerSeasonFilter} seasonNames={seasonNames} teamImageUrl={team?.imageUrl ?? null} />
           {profile?.id === viewedProfile.id && <form className="filler-card" onSubmit={(event) => { event.preventDefault(); linkFillerAppearance(); }}><div><p className="overline">PLAYED AS A FILLER?</p><h2>Add the match to this profile</h2><p>Import the scorecard under Team Admin first, then enter its Fixture ID here. ActionHQ matches the player name without fetching external data.</p></div><label>Fixture ID<input required inputMode="numeric" pattern="[0-9]+" value={fillerFixtureId} onChange={(event) => setFillerFixtureId(event.target.value)} /></label><button disabled={working === "filler"}>{working === "filler" ? "Adding…" : "Add appearance"}</button></form>}
           {!!scorecardCandidates.length && profile?.id === viewedProfile.id && <div className="candidate-card"><strong>Choose the matching scorecard name</strong><p>This is needed only when the scorecard used a different player name.</p><div>{scorecardCandidates.map((candidate) => <button key={`${candidate.teamName}-${candidate.name}`} onClick={() => linkFillerAppearance(candidate.name)}><Initials name={candidate.name} /><span><b>{candidate.name}</b><small>{candidate.teamName}</small></span>＋</button>)}</div></div>}
           <section className="history-panel"><div className="section-title"><div><p className="overline">CLUB HISTORY</p><h2>Seasons and teams</h2></div></div>{viewedProfile.seasons.length ? viewedProfile.seasons.map((item) => <div className="history-row" key={item.id}><Initials name={item.teamName} src={team && item.teamName.toLowerCase() === team.name.toLowerCase() ? team.imageUrl : null} /><span><b>{item.teamName}</b></span><strong>{item.games}<small>GAMES</small></strong><strong>{item.runs}<small>RUNS</small></strong><strong>{item.wickets}<small>WKTS</small></strong></div>) : <div className="panel-empty">No connected team seasons yet.</div>}</section>
