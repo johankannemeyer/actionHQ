@@ -490,8 +490,6 @@ export default function Home() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
   const [scorecardSeasonId, setScorecardSeasonId] = useState<number | null>(null);
   const [rankingMetric, setRankingMetric] = useState<RankingMetric>("impact");
-  const [selectionOpponent, setSelectionOpponent] = useState("");
-  const [selectionDate, setSelectionDate] = useState("");
   const [battingPairs, setBattingPairs] = useState<[string, string][]>([["", ""], ["", ""], ["", ""], ["", ""]]);
   const [fieldingPositions, setFieldingPositions] = useState<Record<string, string>>(() => Object.fromEntries(FIELDING_POSITIONS.map((position) => [position, ""])));
   const [selectionWorking, setSelectionWorking] = useState<"" | "batting" | "fielding">("");
@@ -1181,12 +1179,6 @@ export default function Home() {
     ctx.fillStyle = "#ffffff"; ctx.font = "900 44px Arial, sans-serif";
     ctx.fillText(title, textX, y + 74);
     y += 118;
-    const subtitleParts = [selectionOpponent.trim() ? `vs ${selectionOpponent.trim()}` : "", selectionDate.trim()].filter(Boolean);
-    if (subtitleParts.length) {
-      ctx.fillStyle = "#9fb0b8"; ctx.font = "600 22px Arial, sans-serif";
-      ctx.fillText(subtitleParts.join(" · "), padding, y);
-      y += 18;
-    }
     ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(padding, y + 24); ctx.lineTo(width - padding, y + 24); ctx.stroke();
     return y + 60;
@@ -1404,7 +1396,6 @@ export default function Home() {
             </section>
             <section id="team-selection" className="squad-panel team-selection-panel">
               <div className="section-title"><div><p className="overline">TEAM SELECTION</p><h2>Pick the side for the next match</h2><p>Choose batting pairs for each skin and the fielding positions, then download shareable images for the WhatsApp group.</p></div></div>
-              <div className="selection-match-fields"><label>Opponent<input value={selectionOpponent} onChange={(event) => setSelectionOpponent(event.target.value)} placeholder="e.g. Brakkies" /></label><label>Match date<input value={selectionDate} onChange={(event) => setSelectionDate(event.target.value)} placeholder="e.g. 10 Aug 2026" /></label></div>
               <div className="selection-block">
                 <div className="selection-block-head"><h3>Batting order</h3><span>2 batsmen per skin · 4 skins</span></div>
                 <div className="selection-skin-grid">{battingPairs.map((pair, index) => <div className="selection-skin-card" key={index}><b>Skin {index + 1}</b><select value={pair[0]} onChange={(event) => setBattingSlot(index, 0, event.target.value)}><option value="">Batsman 1</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)} disabled={selectionOptionDisabled(String(item.id), pair[0])}>{item.name}</option>)}</select><select value={pair[1]} onChange={(event) => setBattingSlot(index, 1, event.target.value)}><option value="">Batsman 2</option>{activeRosterPlayers.map((item) => <option key={item.id} value={String(item.id)} disabled={selectionOptionDisabled(String(item.id), pair[1])}>{item.name}</option>)}</select></div>)}</div>
