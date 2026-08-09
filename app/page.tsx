@@ -337,13 +337,15 @@ function PlayerPerformanceCharts({ player, activities, seasonFilter, onSeasonFil
   const summaryBowlingAverage = summaryWickets ? Math.round(summaryRunsConceded / summaryWickets * 10) / 10 : 0;
   const concededDistribution = [0, 1, 2, 3, 4].map((value) => ({ label: value === 4 ? "4+" : String(value), count: summaryBowlingDeliveries.filter((delivery) => value === 4 ? (deliveryRunValue(delivery.outcome) ?? 0) >= 4 : deliveryRunValue(delivery.outcome) === value).length }));
   const scoring = [
-    { id: "dots", label: "Dot balls", short: "0", color: "#e8dfcf", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 0).length },
-    { id: "ones", label: "Singles", short: "1", color: "#d7c9ad", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 1).length },
-    { id: "twos", label: "Twos", short: "2", color: "#bfae8d", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 2).length },
-    { id: "threes", label: "Threes", short: "3", color: "#8c7d64", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 3).length },
-    { id: "boundaries", label: "Boundaries", short: "4+", color: "#ff4d0a", count: battingDeliveries.filter((ball) => (numericOutcome(ball.outcome) ?? 0) >= 4).length },
-    { id: "extras", label: "Extra-assisted", short: "EX", color: "#ffb69b", count: battingDeliveries.filter((ball) => isExtraOutcome(ball.outcome)).length },
-    { id: "outs", label: "Dismissals", short: "OUT", color: "#211313", count: battingDeliveries.filter((ball) => isDismissal(ball.outcome)).length },
+    { id: "dots", label: "Dot balls", short: "0", color: "#a8b3c4", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 0).length },
+    { id: "ones", label: "Singles", short: "1", color: "#63748a", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 1).length },
+    { id: "twos", label: "Twos", short: "2", color: "#347ff0", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 2).length },
+    { id: "threes", label: "Threes", short: "3", color: "#5f5bea", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 3).length },
+    { id: "fours", label: "Fours", short: "4", color: "#a248ed", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 4).length },
+    { id: "fives", label: "Fives", short: "5", color: "#e0357a", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 5).length },
+    { id: "sixes", label: "Sixes", short: "6", color: "#00b3a4", count: battingDeliveries.filter((ball) => numericOutcome(ball.outcome) === 6).length },
+    { id: "sevensPlus", label: "7 runs+", short: "7+", color: "#d9ef45", count: battingDeliveries.filter((ball) => (numericOutcome(ball.outcome) ?? 0) >= 7).length },
+    { id: "outs", label: "Dismissals", short: "OUT", color: "#ff4d0a", count: battingDeliveries.filter((ball) => isDismissal(ball.outcome)).length },
   ];
   const totalOutcomes = Math.max(1, scoring.reduce((sum, item) => sum + item.count, 0));
   let donutStop = 0;
@@ -364,7 +366,8 @@ function PlayerPerformanceCharts({ player, activities, seasonFilter, onSeasonFil
   const bestImpact = linked.length ? Math.max(...linked.map((match) => match.contribution)) : 0;
   const positiveMatches = linked.filter((match) => match.contribution >= 0).length;
   const consistency = Math.round(positiveMatches / games * 100);
-  const boundaryRate = Math.round((scoring.find((item) => item.id === "boundaries")?.count ?? 0) / totalOutcomes * 100);
+  const boundaryCount = ["fours", "fives", "sixes", "sevensPlus"].reduce((sum, id) => sum + (scoring.find((item) => item.id === id)?.count ?? 0), 0);
+  const boundaryRate = Math.round(boundaryCount / totalOutcomes * 100);
   const battingScore = Math.min(100, Math.round(averageRuns / 24 * 100));
   const bowlingScore = Math.min(100, Math.round(averageWickets / 3 * 100));
   const impactScore = Math.min(100, Math.max(0, Math.round((averageImpact + 12) / 36 * 100)));
@@ -1206,12 +1209,6 @@ export default function Home() {
             <section id="season-management" className="season-command-center">
               <div className="season-command-head"><div><p className="overline">SEASON WORKSPACE</p><h2>{season?.name || `Season ${season?.externalSeasonId ?? "not added"}`}</h2><p>{season ? `${season.leagueName || "League not named"} · Season ID ${season.externalSeasonId}. ` : ""}{season?.id === currentSeason?.id ? "New scorecards will be filed here automatically." : "This archived season is read-only until you make it current."}</p></div>{season && <span className={`current-season-badge${season.id === currentSeason?.id ? "" : " archived"}`}>{season.id === currentSeason?.id ? "CURRENT" : "ARCHIVED"}</span>}</div>
               {!!team.seasons?.length && <div className="season-switcher"><div><p className="overline">CHOOSE SEASON</p><strong>{team.seasons.length} season{team.seasons.length === 1 ? "" : "s"} safely stored</strong></div><label>Viewing<select value={season?.id ?? ""} onChange={(event) => setSelectedSeasonId(Number(event.target.value))}>{team.seasons.map((item) => <option key={item.id} value={item.id}>{item.name || `Season ${item.externalSeasonId}`} · {item.leagueName || `League ${item.externalSeasonId}`}{item.id === currentSeason?.id ? " · Current" : " · Archived"}</option>)}</select></label>{season && season.id !== currentSeason?.id && <button className="make-current-button" disabled={working === "season"} onClick={() => makeSeasonCurrent(season.id)}>Make current</button>}</div>}
-              <nav className="season-flow" aria-label="Season management sections">
-                <button type="button" onClick={() => openTeamSection("scorecard-imports")}><b>1</b><span>Import<small>{currentSeason?.name || "Current season"}</small></span></button>
-                <button type="button" onClick={() => openTeamSection("season-management")}><b>2</b><span>Season<small>{season?.id === currentSeason?.id ? "Current" : "Archived"}</small></span></button>
-                <button type="button" onClick={() => openTeamSection("season-roster")}><b>3</b><span>Roster<small>{activeRosterPlayers.length ? `${activeRosterPlayers.length} active players` : "Needs roster"}</small></span></button>
-                <button type="button" onClick={() => openTeamSection("season-results")}><b>4</b><span>Results<small>{seasonActivities.length} scorecards</small></span></button>
-              </nav>
               <div className="season-settings-grid">
                 <details className="season-add-panel"><summary><span>＋</span><div><strong>Add a new season</strong><small>Create the next league season and optionally import its official roster.</small></div><em>Open</em></summary><form className="season-create-form" onSubmit={addSeason}><label>Season name<input required value={newSeasonName} onChange={(event) => setNewSeasonName(event.target.value)} placeholder="Winter 2026" /></label><label>League<input required value={newSeasonLeague} onChange={(event) => setNewSeasonLeague(event.target.value)} placeholder="Men's A League" /></label><label>Season ID<input required value={newSeasonExternalId} onChange={(event) => setNewSeasonExternalId(event.target.value)} placeholder="7889" /></label><label className="season-source-field">Official team profile URL <small>Optional</small><input type="url" value={teamUrl} onChange={(event) => setTeamUrl(event.target.value)} placeholder="Paste only if you want to import the roster" /></label><button disabled={working === "season"}>{working === "season" ? "Adding season…" : "Add season & make current"}</button><p>Without a profile URL, the season starts empty. You can still import completed scorecards.</p></form></details>
                 {season && <details className="season-add-panel season-edit-panel"><summary><span>✎</span><div><strong>Edit selected season</strong><small>Rename, correct its league or Season ID, or delete an empty season.</small></div><em>Open</em></summary><form key={season.id} className="season-edit-form" onSubmit={(event) => editSeason(event, season.id)}><label>Season name<input required name="seasonName" defaultValue={season.name || `Season ${season.externalSeasonId}`} /></label><label>League<input required name="leagueName" defaultValue={season.leagueName || `League ${season.externalSeasonId}`} /></label><label>Season ID<input required name="externalSeasonId" defaultValue={season.externalSeasonId} /></label><button disabled={working === "season"}>Save changes</button><button type="button" className="delete-season-button" disabled={working === "season"} onClick={() => deleteSeason(season)}>Delete season</button></form></details>}

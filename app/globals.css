@@ -413,12 +413,15 @@ img,video,canvas,svg{max-width:100%}
 }
 
 /* ===== Item 1: FIFA-style player card (portrait + fingerprint integrated into hero) ===== */
-.fifa-card{grid-template-columns:170px minmax(0,1fr) 220px!important;gap:26px}
-.smart-athlete-portrait{position:relative;width:170px;height:170px;border-radius:20px;overflow:hidden;background:linear-gradient(160deg,#3a2c26,#1a1210);box-shadow:0 14px 32px rgba(0,0,0,.35);display:grid;place-items:center;flex:0 0 auto}
-.smart-athlete-portrait img{width:100%;height:100%;object-fit:cover;display:block}
-.smart-athlete-portrait-fallback{font-size:52px;font-weight:900;color:#fff;letter-spacing:-1px}
-.smart-athlete-jersey{position:absolute;right:8px;bottom:8px;min-width:30px;height:30px;padding:0 7px;border-radius:9px;background:var(--smart-orange);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.3)}
-.smart-athlete-fingerprint{display:grid;justify-items:center;align-content:center;gap:6px}
+.fifa-card{grid-template-columns:186px minmax(0,1fr) 220px!important;gap:28px;align-items:stretch!important;padding:26px 30px!important}
+.fifa-card:after{width:520px;height:520px;right:-260px;top:-250px}
+.smart-athlete-portrait{position:relative;width:186px;border-radius:18px;overflow:hidden;background:linear-gradient(165deg,#3d2f28 0%,#241713 62%,#180f0c 100%);box-shadow:0 16px 34px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.07);display:grid;place-items:center;flex:0 0 auto;align-self:stretch}
+.smart-athlete-portrait:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 2px,transparent 2px 16px);pointer-events:none}
+.smart-athlete-portrait:after{content:"";position:absolute;width:260%;padding-top:260%;left:50%;top:-10%;transform:translateX(-50%);background:radial-gradient(circle,rgba(255,77,10,.22),transparent 62%);pointer-events:none}
+.smart-athlete-portrait img{width:100%;height:100%;object-fit:cover;display:block;position:relative;z-index:1}
+.smart-athlete-portrait-fallback{position:relative;z-index:1;display:grid;place-items:center;width:60%;aspect-ratio:1;max-width:120px;border-radius:50%;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.14),rgba(255,255,255,.04) 55%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -6px 14px rgba(0,0,0,.3),0 10px 22px rgba(0,0,0,.3);font-size:38px;font-weight:900;color:#fff;letter-spacing:-1px}
+.smart-athlete-jersey{position:absolute;right:9px;bottom:9px;min-width:32px;height:32px;padding:0 7px;border-radius:10px;background:var(--smart-orange);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.25)}
+.smart-athlete-fingerprint{display:grid;justify-items:center;align-content:center;gap:6px;position:relative;z-index:1;padding-left:24px;border-left:1px solid rgba(255,255,255,.08)}
 .smart-athlete-fingerprint .fingerprint-rings{width:148px;height:148px;margin:0}
 .smart-athlete-fingerprint .fingerprint-rings>i{width:148px;height:148px}
 .smart-athlete-fingerprint .fingerprint-rings>i>i{width:110px;height:110px}
@@ -432,14 +435,15 @@ img,video,canvas,svg{max-width:100%}
 .smart-athlete-fingerprint .fingerprint-legend span:nth-child(3) i{background:#fff}
 .smart-athlete-fingerprint .fingerprint-legend i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
 @media(max-width:1120px){
-  .fifa-card{grid-template-columns:150px minmax(0,1fr)!important}
-  .smart-athlete-fingerprint{grid-column:1/-1;display:flex;flex-direction:row;justify-content:center;align-items:center;gap:22px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px}
+  .fifa-card{grid-template-columns:150px minmax(0,1fr)!important;padding:24px!important}
+  .smart-athlete-portrait{width:150px}
+  .smart-athlete-fingerprint{grid-column:1/-1;display:flex;flex-direction:row;justify-content:center;align-items:center;gap:22px;padding:14px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.1);margin-top:6px}
   .smart-athlete-fingerprint .fingerprint-legend{width:auto}
 }
 @media(max-width:760px){
-  .fifa-card{grid-template-columns:1fr!important;text-align:center}
-  .smart-athlete-portrait{width:118px;height:118px;border-radius:16px;margin:0 auto}
-  .smart-athlete-portrait-fallback{font-size:36px}
+  .fifa-card{grid-template-columns:1fr!important;text-align:center;padding:22px 18px!important}
+  .smart-athlete-portrait{width:132px;height:132px;border-radius:16px;margin:0 auto;align-self:center}
+  .smart-athlete-portrait-fallback{font-size:32px}
   .smart-athlete-id{text-align:center}
   .smart-athlete-id:before{margin-left:auto;margin-right:auto}
   .smart-athlete-id em{margin:0 auto}
