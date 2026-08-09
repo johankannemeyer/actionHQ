@@ -38,6 +38,7 @@
 .directory-card-fingerprint,.directory-card-fingerprint>i{width:56px;height:56px}
 .directory-card-fingerprint>i>i{width:41px;height:41px;background:#fff!important}
 .directory-card-fingerprint>i>i>i{width:27px;height:27px;background:#fbfaf7!important;position:relative}
+.directory-card-fingerprint>i>i>i:after{content:"";position:absolute;inset:6px;border-radius:50%;background:#fff}
 .directory-card-fingerprint .ring-bowling,.directory-card-fingerprint .ring-impact{background:var(--ring)!important}
 .directory-card-fingerprint span{position:relative;z-index:1;display:grid;place-items:center}
 .directory-card-fingerprint strong{font-size:11px;font-weight:900;color:var(--navy)}.directory-card-head .avatar-large{width:58px;height:58px;font-size:16px}.directory-card-head>span{display:grid;gap:4px;min-width:0}.directory-card-head em{width:max-content;font-size:6px;letter-spacing:.7px;font-style:normal;font-weight:900;padding:4px 6px}.directory-card-head em.registered{color:var(--green);background:#e4f2e8}.directory-card-head em.ready{color:#98650c;background:#fff2d9}.directory-card-head strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.directory-card-head small{font-size:8px;color:var(--muted)}.directory-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.directory-stats span{display:grid;gap:3px;padding:10px 6px;border-right:1px solid var(--line);text-align:center}.directory-stats span:last-child{border:0}.directory-stats b{font-size:15px}.directory-stats small{font-size:6px;color:var(--muted);font-weight:900}.directory-card-foot{display:flex;justify-content:space-between;gap:10px;padding:11px 14px;font-size:7px}.directory-card-foot span{color:var(--muted)}.directory-card-foot b{color:var(--orange)}
@@ -361,6 +362,7 @@ img,video,canvas,svg{max-width:100%}
   .directory-card-fingerprint,.directory-card-fingerprint>i{width:46px;height:46px}
   .directory-card-fingerprint>i>i{width:34px;height:34px}
   .directory-card-fingerprint>i>i>i{width:22px;height:22px}
+  .directory-card-fingerprint>i>i>i:after{inset:4px}
   .directory-card-fingerprint strong{font-size:9px}
   .ranking-board-heading>div>span,.ranking-table-card>header>span,.ranking-insights-bridge span{font-size:10px;line-height:1.5}
   .ranking-metric-switch button span{font-size:8px}
