@@ -1490,7 +1490,6 @@ export default function Home() {
               <footer><span><b>G</b> Games</span><span><b>R</b> Runs</span><span><b>RA</b> Runs average</span><span><b>SR</b> Strike rate</span><span><b>W</b> Wickets</span><span><b>C</b> Contribution</span></footer>
             </section>
 
-            <section className="ranking-insights-bridge"><div><p className="overline">BEYOND THE LEADERBOARD</p><h2>How the team wins</h2><span>Rankings show who led. Team Stats explains dot-ball avoidance, resilience, run rotation, scoring consistency and wicket pressure.</span></div><button onClick={() => navigateTo("performance")}>Open Team Stats →</button></section>
           </> : loading ? <section className="ranking-empty"><span>♜</span><h2>Loading rankings…</h2></section> : <section className="ranking-empty"><span>↗</span><h2>The board is ready for your roster</h2><p>Add the season roster in Team Admin. Player statistics will remain at zero until completed scorecards are imported.</p><button onClick={() => navigateTo("team")}>Open Team Admin</button></section>}
         </>}
 
